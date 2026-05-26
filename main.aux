@@ -1,0 +1,138 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introdução}{2}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Descrição do Algoritmo}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Configuração dos Experimentos}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Configurações do Computador}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.1}Hardware}{2}{subsubsection.2.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{CPU:}{2}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{RAM:}{2}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Disco:}{2}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.2}Software}{2}{subsubsection.2.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sistema Operacional:}{2}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Java:}{2}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Configurações de Testes}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}Microbenchmark (JMH)}{3}{subsubsection.2.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Casos de benchmark JMH definidos em \texttt  {KMeansBenchmark}.}}{3}{table.1}\protected@file@percent }
+\newlabel{tab:jmh-cases}{{1}{3}{Casos de benchmark JMH definidos em \texttt {KMeansBenchmark}}{table.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Configuração JMH e casos de benchmark em \texttt  {KMeansBenchmark}.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:jmh-config}{{1}{4}{Configuração JMH e casos de benchmark em \texttt {KMeansBenchmark}}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}Macrobenchmark (JMeter)}{4}{subsubsection.2.2.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Configuração do macrobenchmark JMeter.}}{5}{table.2}\protected@file@percent }
+\newlabel{tab:jmeter-config}{{2}{5}{Configuração do macrobenchmark JMeter}{table.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.3}Stress Test (JCStress)}{5}{subsubsection.2.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Configuração do stress test JCStress.}}{5}{table.3}\protected@file@percent }
+\newlabel{tab:jcstress-config}{{3}{5}{Configuração do stress test JCStress}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Testes JCStress e regiões críticas associadas.}}{5}{table.4}\protected@file@percent }
+\newlabel{tab:jcstress-tests}{{4}{5}{Testes JCStress e regiões críticas associadas}{table.4}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.4}Profile (JFR)}{5}{subsubsection.2.2.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Configuração do profile JFR.}}{6}{table.5}\protected@file@percent }
+\newlabel{tab:jfr-config}{{5}{6}{Configuração do profile JFR}{table.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Implementação Serial}{6}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Implementação em Java}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}Descrição}{6}{subsubsection.3.1.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Diagrama de classes da implementação serial em Java.}}{7}{figure.2}\protected@file@percent }
+\newlabel{fig:class-diagram-serial-java}{{2}{7}{Diagrama de classes da implementação serial em Java}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Leitura linha a linha do dataset (\texttt  {CsvDataset.forEachPoint}).}}{7}{figure.3}\protected@file@percent }
+\newlabel{fig:snippet-foreach}{{3}{7}{Leitura linha a linha do dataset (\texttt {CsvDataset.forEachPoint})}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Laço de atribuição e recomputo de centróides (\texttt  {KMeans.cluster}).}}{8}{figure.4}\protected@file@percent }
+\newlabel{fig:snippet-cluster-loop}{{4}{8}{Laço de atribuição e recomputo de centróides (\texttt {KMeans.cluster})}{figure.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Busca do centróide mais próximo e distância euclidiana ao quadrado.}}{8}{figure.5}\protected@file@percent }
+\newlabel{fig:snippet-closest}{{5}{8}{Busca do centróide mais próximo e distância euclidiana ao quadrado}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.2}Resultados}{8}{subsubsection.3.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Microbenchmark}{8}{section*.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Resultados JMH para a implementação serial em Java.}}{9}{table.6}\protected@file@percent }
+\newlabel{tab:jmh-serial-java}{{6}{9}{Resultados JMH para a implementação serial em Java}{table.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Macrobenchmark}{9}{section*.8}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Throughput por número de threads e coletor de GC --- implementação serial em Java.}}{9}{table.7}\protected@file@percent }
+\newlabel{tab:jmeter-serial-java}{{7}{9}{Throughput por número de threads e coletor de GC --- implementação serial em Java}{table.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação de Profile}{9}{section*.9}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Hot methods na implementação serial em Java (JFR, 11.054 amostras).}}{10}{table.8}\protected@file@percent }
+\newlabel{tab:jfr-hot-methods}{{8}{10}{Hot methods na implementação serial em Java (JFR, 11.054 amostras)}{table.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Discussão}{10}{subsection.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Throughput por coletor de GC --- implementação serial.}}{10}{table.9}\protected@file@percent }
+\newlabel{tab:jmeter-serial-gc}{{9}{10}{Throughput por coletor de GC --- implementação serial}{table.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Implementação Concorrente}{11}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Implementação em Java}{11}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.1}Descrição}{11}{subsubsection.4.1.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Diagrama de classes da implementação concorrente em Java. Elementos destacados são novos em relação à versão serial.}}{12}{figure.6}\protected@file@percent }
+\newlabel{fig:class-diagram-concurrent-java}{{6}{12}{Diagrama de classes da implementação concorrente em Java. Elementos destacados são novos em relação à versão serial}{figure.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Criação dos executores e submissão do coordenador (\texttt  {KMeans.cluster}).}}{12}{figure.7}\protected@file@percent }
+\newlabel{fig:snippet-concurrent-cluster}{{7}{12}{Criação dos executores e submissão do coordenador (\texttt {KMeans.cluster})}{figure.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Dispatch de lotes e coleta de futures (\texttt  {KMeans.runClustering}).}}{13}{figure.8}\protected@file@percent }
+\newlabel{fig:snippet-concurrent-dispatch}{{8}{13}{Dispatch de lotes e coleta de futures (\texttt {KMeans.runClustering})}{figure.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Processamento local de um lote sem arrays compartilhados (\texttt  {KMeans.processAssignBatch}).}}{13}{figure.9}\protected@file@percent }
+\newlabel{fig:snippet-concurrent-batch}{{9}{13}{Processamento local de um lote sem arrays compartilhados (\texttt {KMeans.processAssignBatch})}{figure.9}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.2}Resultados}{13}{subsubsection.4.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Avaliação de Condição de Corrida}{13}{section*.10}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Regiões críticas identificadas na implementação concorrente.}}{14}{table.10}\protected@file@percent }
+\newlabel{tab:critical-regions}{{10}{14}{Regiões críticas identificadas na implementação concorrente}{table.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Operações CR1 e CR2 em \texttt  {processAssignBatch}: \texttt  {localCounts[c]++} e \texttt  {addPoint} seriam race conditions se os arrays fossem compartilhados.}}{14}{figure.10}\protected@file@percent }
+\newlabel{fig:snippet-race-condition}{{10}{14}{Operações CR1 e CR2 em \texttt {processAssignBatch}: \texttt {localCounts[c]++} e \texttt {addPoint} seriam race conditions se os arrays fossem compartilhados}{figure.10}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Resultados JCStress --- regiões críticas da implementação concorrente.}}{14}{table.11}\protected@file@percent }
+\newlabel{tab:jcstress-results}{{11}{14}{Resultados JCStress --- regiões críticas da implementação concorrente}{table.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Microbenchmark}{14}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{v2-platform --- Platform Threads.}{15}{section*.12}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Resultados JMH --- serial vs.\ v2-platform.}}{15}{table.12}\protected@file@percent }
+\newlabel{tab:jmh-v2-platform}{{12}{15}{Resultados JMH --- serial vs.\ v2-platform}{table.12}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-virtual --- Virtual Threads.}{15}{section*.13}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Resultados JMH --- serial vs.\ v2-virtual.}}{15}{table.13}\protected@file@percent }
+\newlabel{tab:jmh-v2-virtual}{{13}{15}{Resultados JMH --- serial vs.\ v2-virtual}{table.13}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-hybrid --- Abordagem Híbrida.}{15}{section*.14}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Resultados JMH --- serial vs.\ v2-hybrid.}}{16}{table.14}\protected@file@percent }
+\newlabel{tab:jmh-v2-hybrid}{{14}{16}{Resultados JMH --- serial vs.\ v2-hybrid}{table.14}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Macrobenchmark}{16}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{v2-platform --- Platform Threads.}{16}{section*.16}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Throughput por número de threads e coletor de GC --- v2-platform.}}{16}{table.15}\protected@file@percent }
+\newlabel{tab:jmeter-v2-platform}{{15}{16}{Throughput por número de threads e coletor de GC --- v2-platform}{table.15}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-virtual --- Virtual Threads.}{16}{section*.17}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Throughput por número de threads e coletor de GC --- v2-virtual.}}{16}{table.16}\protected@file@percent }
+\newlabel{tab:jmeter-v2-virtual}{{16}{16}{Throughput por número de threads e coletor de GC --- v2-virtual}{table.16}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-hybrid --- Abordagem Híbrida.}{16}{section*.18}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Throughput por número de threads e coletor de GC --- v2-hybrid.}}{17}{table.17}\protected@file@percent }
+\newlabel{tab:jmeter-v2-hybrid}{{17}{17}{Throughput por número de threads e coletor de GC --- v2-hybrid}{table.17}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação de Profile}{17}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{v2-platform --- Platform Threads.}{17}{section*.20}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Hot methods na implementação v2-platform (JFR, 12.157 amostras).}}{17}{table.18}\protected@file@percent }
+\newlabel{tab:jfr-hot-v2-platform}{{18}{17}{Hot methods na implementação v2-platform (JFR, 12.157 amostras)}{table.18}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-virtual --- Virtual Threads.}{17}{section*.21}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Hot methods na implementação v2-virtual (JFR, 10.164 amostras).}}{18}{table.19}\protected@file@percent }
+\newlabel{tab:jfr-hot-v2-virtual}{{19}{18}{Hot methods na implementação v2-virtual (JFR, 10.164 amostras)}{table.19}{}}
+\@writefile{toc}{\contentsline {subparagraph}{v2-hybrid --- Abordagem Híbrida.}{18}{section*.22}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces Hot methods na implementação v2-hybrid (JFR, 2.133 amostras).}}{18}{table.20}\protected@file@percent }
+\newlabel{tab:jfr-hot-v2-hybrid}{{20}{18}{Hot methods na implementação v2-hybrid (JFR, 2.133 amostras)}{table.20}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Discussão}{18}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces Comparativo JMH entre abordagens (s/op).}}{19}{table.21}\protected@file@percent }
+\newlabel{tab:jmh-comparativo}{{21}{19}{Comparativo JMH entre abordagens (s/op)}{table.21}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Throughput (execuções/min, G1GC) por abordagem e número de threads JMeter.}}{19}{table.22}\protected@file@percent }
+\newlabel{tab:jmeter-comparativo}{{22}{19}{Throughput (execuções/min, G1GC) por abordagem e número de threads JMeter}{table.22}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Implementação Concorrente --- Dados em Memória}{19}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Implementação em Java}{19}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.1}Descrição}{19}{subsubsection.5.1.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Alterações da v3 em relação à v2-virtual.}}{20}{table.23}\protected@file@percent }
+\newlabel{tab:v3-changes}{{23}{20}{Alterações da v3 em relação à v2-virtual}{table.23}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.2}Resultados}{20}{subsubsection.5.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Avaliação de Condição de Corrida}{20}{section*.23}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Resultados JCStress --- regiões críticas da v3.}}{20}{table.24}\protected@file@percent }
+\newlabel{tab:jcstress-v3}{{24}{20}{Resultados JCStress --- regiões críticas da v3}{table.24}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Microbenchmark}{20}{section*.24}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces Resultados JMH --- serial vs.\ v3 (dados em memória).}}{20}{table.25}\protected@file@percent }
+\newlabel{tab:jmh-v3}{{25}{20}{Resultados JMH --- serial vs.\ v3 (dados em memória)}{table.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação com Macrobenchmark}{21}{section*.25}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces Throughput e latência por número de threads JMeter --- v3, ParallelGC.}}{21}{table.26}\protected@file@percent }
+\newlabel{tab:jmeter-v3}{{26}{21}{Throughput e latência por número de threads JMeter --- v3, ParallelGC}{table.26}{}}
+\@writefile{toc}{\contentsline {paragraph}{Avaliação de Profile}{21}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Discussão}{21}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces Comparativo JMH: serial, v2-virtual e v3 (s/op).}}{22}{table.27}\protected@file@percent }
+\newlabel{tab:jmh-comparativo-v3}{{27}{22}{Comparativo JMH: serial, v2-virtual e v3 (s/op)}{table.27}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces Throughput (exec/min, ParallelGC) --- v2-virtual vs.\ v3.}}{22}{table.28}\protected@file@percent }
+\newlabel{tab:jmeter-comparativo-v3}{{28}{22}{Throughput (exec/min, ParallelGC) --- v2-virtual vs.\ v3}{table.28}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussão Final}{22}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Comparativo Geral das Abordagens}{22}{subsection.6.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces Comparativo geral entre abordagens (B2 = custo por iteração, JMH; throughput = exec/min, JMeter ParallelGC).}}{23}{table.29}\protected@file@percent }
+\newlabel{tab:comparativo-geral}{{29}{23}{Comparativo geral entre abordagens (B2 = custo por iteração, JMH; throughput = exec/min, JMeter ParallelGC)}{table.29}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Pontos Positivos e Negativos de Cada Abordagem}{23}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Lições Aprendidas}{24}{subsection.6.3}\protected@file@percent }
+\gdef \@abspage@last{25}

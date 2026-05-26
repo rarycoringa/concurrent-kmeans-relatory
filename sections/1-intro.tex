@@ -1,0 +1,30 @@
+\section{Introdução}
+
+\subsection{Descrição do Algoritmo}
+
+O K-Means é um algoritmo de agrupamento não supervisionado que particiona um
+conjunto de dados em \(k\) grupos (clusters), de forma que cada ponto pertença
+ao cluster cujo centróide é o mais próximo. O algoritmo opera em iterações:
+na etapa de \textbf{atribuição}, cada ponto é associado ao centróide mais próximo
+segundo a distância euclidiana; na etapa de \textbf{atualização}, cada centróide
+é recalculado como a média aritmética de todos os pontos a ele atribuídos. Esse
+ciclo se repete até que os centróides estabilizem (deslocamento máximo abaixo de
+uma tolerância) ou o número máximo de iterações seja atingido.
+
+A complexidade por iteração é \(O(N \cdot k \cdot d)\), onde \(N\) é o número de
+pontos, \(k\) o número de clusters e \(d\) a dimensionalidade dos dados. Por
+percorrer todos os pontos a cada iteração, o algoritmo é naturalmente paralelizável
+na etapa de atribuição, tornando-o um caso de estudo relevante para comparação
+entre estratégias de concorrência.
+
+\iffalse % ============================================================
+% ERLANG — seção desativada, manter para uso futuro
+\subsection{\sout{Descrição da Linguagem Erlang}}
+
+% Descrever a linguagem de programação escolhida em termo de todos os aspectos apresentados
+% em sala de aula. No final de cada aula, é apresentado os aspectos a serem considerados
+
+% Exemplo: Modelo de programação(Memória Compartilha, Passagem de Mensagens, GPU),
+% Modelo de Memória e eventuais problemas como visibilidade, Coleta de Lixo, JIT,
+% controle de região critica, etc.
+\fi % ============================================================

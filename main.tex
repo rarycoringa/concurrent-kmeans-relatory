@@ -1,0 +1,58 @@
+\documentclass[12pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{ulem}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.15\textwidth]{img/logo.png} \\
+    {\large Universidade Federal do Rio Grande do Norte} \\
+    {\large Departamento de Informática e Matemática Aplicada} \\
+    {\large DIM0124 - Programação Concorrente} \\
+
+    \vfill
+
+    {\LARGE \textbf{Relatório de Desenvolvimento de Aplicação Concorrente}} \\
+    \vspace{1cm}
+    {\Large \textbf{Algoritmo K-Means}} \\
+
+    \vfill
+    
+    \raggedright
+    {\large Matrícula: 20210081823} \\
+    \vspace{0.15cm}
+    {\large Nome: Rary Emanuel Gonçalves Coringa} \\
+\end{titlepage}
+
+\pagenumbering{arabic}
+\tableofcontents
+\newpage
+
+\input{sections/1-intro.tex}
+
+\input{sections/2-configs.tex}
+
+\input{sections/3-serial.tex}
+
+\input{sections/4-concurrent.tex}
+
+\input{sections/5-concurrent-x.tex}
+
+% \input{sections/6-concurrent-y.tex}
+
+% \input{sections/7-concurrent-z.tex}
+
+\input{sections/8-final.tex}
+
+\end{document}

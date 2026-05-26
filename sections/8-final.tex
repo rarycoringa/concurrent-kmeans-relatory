@@ -1,0 +1,136 @@
+\section{Discussão Final}
+
+\subsection{Comparativo Geral das Abordagens}
+
+O trabalho evoluiu em três estágios distintos, cada um respondendo a uma limitação
+do estágio anterior.
+
+\textbf{Serial.}
+A implementação sequencial estabeleceu a baseline: uma thread lê o CSV, calcula a
+distância de cada ponto aos centróides e acumula os resultados. O perfil de execução
+revelou que $\approx$87\% do tempo era gasto em parsing CSV
+(\texttt{FloatingDecimal.parseDouble}, \texttt{String.split}), e apenas $\approx$13\%
+em computação aritmética. Isso significa que o algoritmo em si é rápido; o gargalo
+é a entrada de dados.
+
+\textbf{Concorrente v2 (platform, virtual, hybrid).}
+A paralelização da fase de atribuição (lotes de 5.000 pontos, pool de $N$ workers)
+não trouxe ganho de tempo por iteração: o parsing CSV seguia sequencial na thread
+principal, dominando o tempo total. Os microbenchmarks mostraram B2
+$\approx$60 s/op para todas as variantes, idêntico ao serial. O macrobenchmark
+revelou throughput de 1,6--4,6 exec/min dependendo do número de threads JMeter
+e da variante de GC.
+
+A exploração das três variantes foi útil para entender o comportamento de cada
+modelo de thread. Platform threads escalonam pelo kernel; virtual threads
+multiplexam sobre carriers do \texttt{ForkJoinPool}. A variante hybrid foi a que
+mais claramente separou os papéis: o coordenador virtual desmontava durante I/O e
+\texttt{Future.get()}, tornando o parsing CSV invisível ao profiler de CPU
+--- revelando que o problema não era a coordenação, mas a leitura em si.
+
+\textbf{Concorrente v3 (dados em memória).}
+Carregar o dataset inteiro em \texttt{double[][]} antes do loop de iterações
+eliminou o parsing CSV das medições. B2 caiu de $\approx$60 s para $\approx$1{,}6 s
+($\approx$37$\times$); o throughput saltou de $\approx$1,6 para $\approx$52
+exec/min com 1 thread JMeter. O perfil não registrou nenhum evento de leitura de
+arquivo durante o clustering. O custo foi o aumento do heap de $\approx$250 MB
+para $\approx$2{,}7 GB.
+
+A Tabela~\ref{tab:comparativo-geral} resume os principais números de cada abordagem.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Abordagem} & \textbf{B2 (s/op)} & \textbf{Throughput 1t} & \textbf{Throughput 16t} & \textbf{Heap pico} \\
+\hline
+Serial      & 60{,}05 &     ---    &     ---    & $\approx$250 MB \\
+v2-platform & 60{,}69 & 1{,}65/min & 4{,}49/min & $\approx$250 MB \\
+v2-virtual  & 71{,}61 & 1{,}62/min & 4{,}55/min & $\approx$250 MB \\
+v2-hybrid   & 60{,}44 & 1{,}60/min & 4{,}53/min & $\approx$250 MB \\
+v3          &  1{,}60 & 52{,}5/min & 62{,}3/min & $\approx$2{,}7 GB \\
+\hline
+\end{tabular}
+\caption{Comparativo geral entre abordagens (B2 = custo por iteração, JMH; throughput = exec/min, JMeter ParallelGC).}
+\label{tab:comparativo-geral}
+\end{table}
+
+\subsection{Pontos Positivos e Negativos de Cada Abordagem}
+
+\subsubsection*{Serial}
+
+\textbf{Positivos.}
+Simples de implementar e depurar. Ausência de condições de corrida por definição.
+Baixo consumo de memória. Serve como baseline clara para medir ganhos das versões
+concorrentes.
+
+\textbf{Negativos.}
+Subutiliza processadores multi-core. A thread principal acumula os dois papéis
+(I/O e computação) sem possibilidade de sobreposição.
+
+\subsubsection*{v2 --- Concorrência com Lotes e Futures}
+
+\textbf{Positivos.}
+Paraleliza a fase computacionalmente intensiva (atribuição de pontos a centróides)
+sem exigir sincronização explícita, graças à acumulação local por worker. A
+estrutura de \texttt{Future.get()} fornece garantia de happens-before clara. A
+variante hybrid demonstrou que virtual threads são adequadas para coordenadores
+que alternam entre I/O e espera.
+
+\textbf{Negativos.}
+O parsing CSV sequencial na thread principal continua sendo o gargalo, tornando o
+ganho da paralelização invisível no tempo de parede. A criação de objetos
+\texttt{List.copyOf} e \texttt{PartialResult} por lote gera pressão de GC.
+A virtual thread em tarefas CPU-bound de curta duração introduz variância elevada
+no JMH (até $\pm$260 s), pois o \texttt{ForkJoinPool} não foi projetado para
+tarefas que nunca bloqueiam.
+
+\subsubsection*{v3 --- Dados em Memória com CountDownLatch}
+
+\textbf{Positivos.}
+Elimina o I/O das iterações, revelando o verdadeiro custo computacional do algoritmo.
+A divisão em $N$ chunks fixos é mais simples que a criação dinâmica de lotes:
+sem \texttt{List.copyOf}, sem \texttt{Future} por lote. \texttt{CountDownLatch}
+é mais direto que coletar e iterar sobre uma lista de \texttt{Future}s. O
+\texttt{KMeansSampler} com \texttt{sharedPoints} estático permite que múltiplos
+threads JMeter compartilhem os dados sem alocar múltiplos GBs por thread.
+
+\textbf{Negativos.}
+O dataset inteiro precisa caber na heap ($\approx$1{,}75 GB para $\approx$5{,}75
+milhões de pontos com 38 features). Isso inviabiliza a abordagem para datasets
+maiores sem particionamento externo. O tempo de inicialização (leitura única do
+CSV) não é contabilizado nas métricas, o que pode ser enganoso se o processo for
+reiniciado frequentemente.
+
+\subsection{Lições Aprendidas}
+
+\textbf{Medir antes de paralelizar.}
+Sem o profile da versão serial, seria natural assumir que paralelizar o loop de
+atribuição bastaria para acelerar o algoritmo. O JFR mostrou que 87\% do tempo era
+parsing CSV --- tornar paralelo os outros 13\% dificilmente produziria ganho
+perceptível.
+
+\textbf{Gargalos migram.}
+Depois que o I/O foi eliminado na v3, o verdadeiro gargalo computacional tornou-se
+visível: \texttt{squaredDistance} e \texttt{closestCentroid} no loop interno. Em
+implementações futuras, esse é o ponto a otimizar (SIMD, vetorização, redução de
+dimensionalidade).
+
+\textbf{Virtual threads não são bala de prata para CPU-bound.}
+Virtual threads brilham quando há bloqueio I/O: o carrier é liberado e reutilizado.
+Em tarefas puramente aritméticas, elas não oferecem vantagem sobre platform threads
+e podem introduzir variância de escalonamento. A escolha certa depende do perfil
+da tarefa.
+
+\textbf{O modelo de acumulação local escala bem.}
+O padrão map-reduce local (cada worker acumula em arrays próprios, a thread
+coordenadora reduz no final) evitou toda sincronização interna sem locks, atomics
+ou \texttt{volatile}. A corretude foi verificável formalmente via JCStress, que
+confirmou a ausência de race conditions nas operações reais e a presença delas
+quando a proteção é removida (JCS3, JCS4).
+
+\textbf{O custo de abstração importa.}
+A troca de \texttt{List<Future<PartialResult>>} por \texttt{CountDownLatch} + array
+de resultados eliminou a alocação de centenas de objetos por iteração. Pequenas
+decisões de design (tamanho do lote, estrutura de retorno, tipo de sincronizador)
+têm impacto mensurável em cargas de trabalho longas.
