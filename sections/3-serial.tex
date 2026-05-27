@@ -94,8 +94,6 @@ B2 mostra que cada iteração leva cerca de 12 s, dominado pela releitura do CSV
 ciclo. B3 e B4 mostram que o cálculo aritmético é rápido (96 ns e 9 ns por chamada).
 O gargalo não está na CPU, mas na leitura e no parsing do arquivo.
 
-% Mostrar tabela de resultados comparando Java com a linguagem escolhida
-
 \paragraph{Avaliação com Macrobenchmark}
 
 Os macrobenchmarks foram executados com JMeter 5.6.3 sobre JDK 25.0.1, com
@@ -180,22 +178,15 @@ paralelismo.
 O principal gargalo é o parsing CSV (\texttt{String.split} + \texttt{Double.parseDouble}),
 que consome $\approx$82\% do CPU. O cálculo aritmético do K-Means representa apenas $\approx$8\%.
 
-\iffalse % ============================================================
-% ERLANG — seção desativada, manter para uso futuro
-\subsection{\sout{Implementação em Erlang}}
+\subsection{Implementação em Erlang}
 
-\subsubsection{\sout{Descrição}}
-
-% Descrever como o algoritmo foi implementado na outra linguagem
-
-\subsubsection{\sout{Resultados}}
-
-\paragraph{\sout{Avaliação com Microbenchmark}}
-
-\paragraph{\sout{Avaliação com Macrobenchmark}}
-
-\paragraph{\sout{Avaliação de Profile}}
-\fi % ============================================================
+Uma implementação serial em Erlang não foi realizada. A linguagem é projetada
+em torno do modelo de atores: processos são a unidade fundamental de execução
+e toda computação significativa ocorre por troca de mensagens entre eles.
+Escrever um K-Means verdadeiramente serial em Erlang exigiria contornar
+deliberadamente os mecanismos centrais da linguagem, produzindo código
+artificial e não representativo. A implementação Erlang é apresentada
+diretamente na Seção~\ref{sec:concurrent} como versão concorrente.
 
 \subsection{Discussão}
 
@@ -208,25 +199,7 @@ releitura do arquivo a cada iteração (\texttt{forEachPoint}) é outro gargalo
 que poderia ser eliminado carregando o dataset em memória.
 
 \textbf{Comparação de coletores de GC.}
-A Tabela~\ref{tab:jmeter-serial-gc} compara o throughput por coletor em três
-níveis de carga.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lrrrr}
-\hline
-\textbf{GC} & \textbf{1 thread} & \textbf{4 threads} & \textbf{16 threads} & \textbf{Unidade} \\
-\hline
-G1GC       & 1{,}56 & 2{,}70 & 4{,}66 & execuções/min \\
-ZGC        & 1{,}50 & 2{,}54 & 4{,}40 & execuções/min \\
-ParallelGC & 1{,}52 & 2{,}79 & 4{,}85 & execuções/min \\
-\hline
-\end{tabular}
-\caption{Throughput por coletor de GC --- implementação serial.}
-\label{tab:jmeter-serial-gc}
-\end{table}
-
-O ParallelGC tem o maior throughput em todos os níveis, seguido pelo G1GC. O ZGC
-fica levemente atrás: mesmo com baixa pressão de heap, as barreiras de escrita do
-seu algoritmo adicionam custo. No geral, o impacto do GC é pequeno --- as pausas
-somam menos de 1\% do tempo total.
+O ParallelGC tem o maior throughput em todos os níveis de carga, seguido pelo G1GC.
+O ZGC fica levemente atrás em todos os casos pelas barreiras de escrita do seu
+algoritmo. No geral, o impacto do GC é pequeno --- as pausas somam menos de 1\%
+do tempo total.

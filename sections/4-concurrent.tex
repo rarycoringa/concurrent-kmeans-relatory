@@ -1,4 +1,5 @@
 \section{Implementação Concorrente}
+\label{sec:concurrent}
 
 \subsection{Implementação em Java}
 
@@ -157,175 +158,61 @@ com compilação C2 e em 0,01\% com o Interpreter.
 
 \paragraph{Avaliação com Microbenchmark}
 
-Os microbenchmarks foram executados com JMH 1.37 sobre JDK 25.0.1 (OpenJDK 64-Bit
-Server VM), com 1 fork, 1 iteração de aquecimento de 10 s e 3 iterações de medição
-de 10 s cada. O dataset utilizado é o mesmo da versão serial ($\approx$1 GB).
+Os microbenchmarks foram executados com JMH 1.37 sobre JDK 25.0.1, com 1 fork,
+1 iteração de aquecimento de 10 s e 3 iterações de medição de 10 s cada.
+A Tabela~\ref{tab:jmh-v2-all} compara as três variantes com a versão serial.
 
-\subparagraph{v2-platform --- Platform Threads.}
-Pool fixo de $N$ threads de plataforma criado com
-\texttt{Executors.newFixedThreadPool(N,~Thread.ofPlatform().factory())},
-onde $N$ é o número de processadores lógicos disponíveis. A thread principal lê o
-CSV em lotes de 5.000 pontos e submete cada lote ao pool imediatamente, de modo
-que os workers processam em paralelo enquanto a leitura continua.
-
-\begin{table}[h]
+\begin{table}[H]
 \centering
-\begin{tabular}{llrrrr}
+\small
+\begin{tabular}{lrrrr}
 \hline
-\textbf{ID} & \textbf{Benchmark} & \textbf{Serial} & \textbf{v2-platform} & \textbf{Erro ($\pm$)} & \textbf{Unidade} \\
+\textbf{ID (Un.)} & \textbf{Serial} & \textbf{v2-platform} & \textbf{v2-virtual} & \textbf{v2-hybrid} \\
 \hline
-B1 & Execução completa (\textit{k}=10, maxIter=20) & 212{,}57 & 214{,}87 & 29{,}10 & s/op \\
-B2 & Custo por iteração (\textit{k}=10, maxIter=5) &  60{,}05 &  60{,}69 &  6{,}41 & s/op \\
-B3 & \texttt{closestCentroid} (\textit{k}=10, 38 dims) &  96{,}82 & 102{,}24 &  3{,}92 & ns/op \\
-B4 & \texttt{squaredDistance} (38 dims)               &   9{,}31 &   9{,}70 &  2{,}71 & ns/op \\
+B1 (s)  & 212{,}57 & 214{,}87 ($\pm$29{,}10) & 211{,}64 ($\pm$260{,}68) & 215{,}69 ($\pm$59{,}78) \\
+B2 (s)  &  60{,}05 &  60{,}69 ($\pm$6{,}41)  &  71{,}61 ($\pm$227{,}05) &  60{,}44 ($\pm$5{,}33) \\
+B3 (ns) &  96{,}82 & 102{,}24 & 101{,}11 & 102{,}07 \\
+B4 (ns) &   9{,}31 &   9{,}70 &   9{,}58 &   9{,}87 \\
 \hline
 \end{tabular}
-\caption{Resultados JMH --- serial vs.\ v2-platform.}
-\label{tab:jmh-v2-platform}
+\caption{Resultados JMH --- serial vs.\ variantes v2 (média; B1/B2 com erro $\pm$).}
+\label{tab:jmh-v2-all}
 \end{table}
 
-B1 e B2 são equivalentes ao serial (diferença $< 1{,}5\%$). O parsing CSV
-sequencial na thread principal continua dominando o tempo de execução. B3 e B4
-permanecem na mesma faixa.
-
-\subparagraph{v2-virtual --- Virtual Threads.}
-Pool fixo de $N$ virtual threads criado com
-\texttt{Executors.newFixedThreadPool(N,~Thread.ofVirtual().factory())},
-onde $N$ é o número de processadores lógicos disponíveis --- estrutura
-idêntica à de v2-platform, alterando apenas a fábrica de threads. Cada virtual
-thread é escalonada pelo JVM sobre carriers de um \texttt{ForkJoinPool} interno,
-sem corresponder a uma thread de SO.
-
-\begin{table}[h]
-\centering
-\begin{tabular}{llrrrr}
-\hline
-\textbf{ID} & \textbf{Benchmark} & \textbf{Serial} & \textbf{v2-virtual} & \textbf{Erro ($\pm$)} & \textbf{Unidade} \\
-\hline
-B1 & Execução completa (\textit{k}=10, maxIter=20) & 212{,}57 & 211{,}64 & 260{,}68 & s/op \\
-B2 & Custo por iteração (\textit{k}=10, maxIter=5) &  60{,}05 &  71{,}61 & 227{,}05 & s/op \\
-B3 & \texttt{closestCentroid} (\textit{k}=10, 38 dims) &  96{,}82 & 101{,}11 &   8{,}06 & ns/op \\
-B4 & \texttt{squaredDistance} (38 dims)               &   9{,}31 &   9{,}58 &   1{,}23 & ns/op \\
-\hline
-\end{tabular}
-\caption{Resultados JMH --- serial vs.\ v2-virtual.}
-\label{tab:jmh-v2-virtual}
-\end{table}
-
-B1 (211,64 s) é equivalente ao serial, mas com margem de erro elevada ($\pm$260 s).
-B2 também apresenta alta variância ($\pm$227 s), reflexo da imprevisibilidade do
-\texttt{ForkJoinPool} para tarefas CPU-bound que nunca bloqueiam. B3 e B4
-permanecem na mesma faixa.
-
-\subparagraph{v2-hybrid --- Abordagem Híbrida.}
-Dois executores separados: um \texttt{computePool} de $N$ platform threads
-(\texttt{Thread.ofPlatform().factory()}) para os workers CPU-bound, e um
-\texttt{coordinator} com \texttt{Executors.newVirtualThreadPerTaskExecutor()}
-que executa \texttt{runClustering()} em uma única virtual thread. O coordenador
-desmonta durante a leitura do CSV (\texttt{readLine}) e durante cada
-\texttt{Future.get()}, liberando o carrier enquanto aguarda os workers.
-
-\begin{table}[h]
-\centering
-\begin{tabular}{llrrrr}
-\hline
-\textbf{ID} & \textbf{Benchmark} & \textbf{Serial} & \textbf{v2-hybrid} & \textbf{Erro ($\pm$)} & \textbf{Unidade} \\
-\hline
-B1 & Execução completa (\textit{k}=10, maxIter=20) & 212{,}57 & 215{,}69 & 59{,}78 & s/op \\
-B2 & Custo por iteração (\textit{k}=10, maxIter=5) &  60{,}05 &  60{,}44 &  5{,}33 & s/op \\
-B3 & \texttt{closestCentroid} (\textit{k}=10, 38 dims) &  96{,}82 & 102{,}07 & 26{,}17 & ns/op \\
-B4 & \texttt{squaredDistance} (38 dims)               &   9{,}31 &   9{,}87 &  1{,}14 & ns/op \\
-\hline
-\end{tabular}
-\caption{Resultados JMH --- serial vs.\ v2-hybrid.}
-\label{tab:jmh-v2-hybrid}
-\end{table}
-
-B1 (215,69 s) é equivalente ao serial, com margem de erro moderada ($\pm$59,78 s):
-os workers de plataforma estabilizam o escalonamento, mas o coordenador virtual
-adiciona alguma variabilidade ao bloquear em \texttt{Future.get()}. B2 ($\pm$5,33 s)
-é estável. B3 e B4 permanecem na mesma faixa.
+Nenhuma variante reduz o tempo em relação ao serial: o parsing CSV sequencial
+domina B1 e B2 em todas elas. A v2-virtual tem variância muito alta ($\pm$260 s
+em B1) porque o \texttt{ForkJoinPool} não é adequado para tarefas CPU-bound que
+nunca bloqueiam. B3 e B4 são praticamente inalterados nas três variantes.
 
 \paragraph{Avaliação com Macrobenchmark}
 
-Os macrobenchmarks foram executados com JMeter 5.6.3 sobre JDK 25.0.1, com
-$k = 10$, \texttt{maxIter} = 3 e \texttt{tol} = 0{,}0. Cada configuração
-(GC $\times$ threads) rodou por 120 s com ramp-up de 30 s.
-
-\subparagraph{v2-platform --- Platform Threads.}
-A Tabela~\ref{tab:jmeter-v2-platform} apresenta o throughput (execuções/min)
-por número de threads JMeter e coletor de GC.
+Os macrobenchmarks foram executados com JMeter 5.6.3 sobre JDK 25.0.1 ($k=10$,
+\texttt{maxIter}=3, \texttt{tol}=0,0), 120 s por configuração e ramp-up de 30 s.
+A Tabela~\ref{tab:jmeter-v2-all} mostra o throughput com G1GC para as três variantes.
 
 \begin{table}[H]
 \centering
-\begin{tabular}{rrrrr}
+\begin{tabular}{rrrr}
 \hline
-\textbf{Threads} & \textbf{G1GC} & \textbf{ZGC} & \textbf{ParallelGC} & \textbf{Unidade} \\
+\textbf{Threads} & \textbf{v2-platform} & \textbf{v2-virtual} & \textbf{v2-hybrid} \\
 \hline
-1  & 1{,}65 & 1{,}42 & 1{,}59 & execuções/min \\
-2  & 1{,}95 & 1{,}96 & 2{,}11 & execuções/min \\
-4  & 3{,}92 & 2{,}42 & 2{,}62 & execuções/min \\
-8  & 3{,}08 & 2{,}45 & 2{,}79 & execuções/min \\
-16 & 4{,}49 & 4{,}10 & 4{,}39 & execuções/min \\
-\hline
-\end{tabular}
-\caption{Throughput por número de threads e coletor de GC --- v2-platform.}
-\label{tab:jmeter-v2-platform}
-\end{table}
-
-Com 1 thread JMeter, o throughput é $\approx$1,6 exec/min. O ganho não é linear
-com mais threads: cada execução cria internamente $N$ workers, de modo que
-8 threads JMeter geram até $8 \times N$ workers competindo por CPU e I/O de disco.
-
-\subparagraph{v2-virtual --- Virtual Threads.}
-A Tabela~\ref{tab:jmeter-v2-virtual} apresenta o throughput (execuções/min)
-por número de threads JMeter e coletor de GC.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{rrrrr}
-\hline
-\textbf{Threads} & \textbf{G1GC} & \textbf{ZGC} & \textbf{ParallelGC} & \textbf{Unidade} \\
-\hline
-1  & 1{,}59 & 1{,}55 & 1{,}62 & execuções/min \\
-2  & 2{,}17 & 1{,}99 & 2{,}13 & execuções/min \\
-4  & 3{,}29 & 3{,}02 & 2{,}14 & execuções/min \\
-8  & 4{,}00 & 2{,}75 & 3{,}77 & execuções/min \\
-16 & 4{,}55 & 4{,}09 & 4{,}34 & execuções/min \\
+ 1 & 1{,}65 & 1{,}59 & 1{,}60 \\
+ 2 & 1{,}95 & 2{,}17 & 2{,}13 \\
+ 4 & 3{,}92 & 3{,}29 & 2{,}67 \\
+ 8 & 3{,}08 & 4{,}00 & 3{,}44 \\
+16 & 4{,}49 & 4{,}55 & 4{,}53 \\
 \hline
 \end{tabular}
-\caption{Throughput por número de threads e coletor de GC --- v2-virtual.}
-\label{tab:jmeter-v2-virtual}
+\caption{Throughput (execuções/min, G1GC) por variante v2 e número de threads JMeter.}
+\label{tab:jmeter-v2-all}
 \end{table}
 
-Com 1 thread JMeter, o throughput é $\approx$1,6 exec/min. Com 4 threads G1GC
-chega a 3,29 exec/min; com 8 threads a 4,00 exec/min. Em 16 threads, todas as
-configurações de GC convergem para $\approx$4,3--4,6 exec/min.
-
-\subparagraph{v2-hybrid --- Abordagem Híbrida.}
-A Tabela~\ref{tab:jmeter-v2-hybrid} apresenta o throughput (execuções/min)
-por número de threads JMeter e coletor de GC.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{rrrrr}
-\hline
-\textbf{Threads} & \textbf{G1GC} & \textbf{ZGC} & \textbf{ParallelGC} & \textbf{Unidade} \\
-\hline
-1  & 1{,}60 & 1{,}45 & 1{,}59 & execuções/min \\
-2  & 2{,}13 & 1{,}98 & 2{,}14 & execuções/min \\
-4  & 2{,}67 & 2{,}51 & 2{,}71 & execuções/min \\
-8  & 3{,}44 & 3{,}21 & 3{,}38 & execuções/min \\
-16 & 4{,}53 & 4{,}09 & 4{,}40 & execuções/min \\
-\hline
-\end{tabular}
-\caption{Throughput por número de threads e coletor de GC --- v2-hybrid.}
-\label{tab:jmeter-v2-hybrid}
-\end{table}
-
-Com 1 thread JMeter, o throughput é $\approx$1,6 exec/min. Com 8 threads G1GC
-chega a 3,44 exec/min; com 16 threads a 4,53 exec/min. O ZGC fica levemente
-abaixo das demais configurações em todos os níveis.
+Com 1 thread JMeter o throughput é $\approx$1,6 exec/min para todas as variantes.
+Com 4 threads, v2-platform lidera (3,92); com 8, v2-virtual supera as demais (4,00)
+porque os carriers do \texttt{ForkJoinPool} evitam a saturação do escalonador do
+kernel que ocorre com $8 \times N$ platform threads reais. Em 16 threads todas
+convergem para $\approx$4,5 exec/min. O ZGC fica levemente abaixo de G1GC e
+ParallelGC em todos os casos pelas barreiras de escrita do seu algoritmo.
 
 \paragraph{Avaliação de Profile}
 
@@ -334,51 +221,15 @@ completa do algoritmo ($k=10$, \texttt{maxIter=3}, G1GC, dataset $\approx$1 GB).
 A gravação durou $\approx$113 s e foi analisada com a ferramenta \texttt{jfr}
 do JDK 25.
 
-\subparagraph{v2-platform --- Platform Threads.}
+\subparagraph{v2-platform e v2-virtual.}
+Em ambas as variantes, a thread \texttt{main} domina o perfil de CPU: 86,6\%
+em v2-platform (parsing CSV) e 99,8\% em v2-virtual. Na v2-virtual os workers
+aparecem em apenas 21 das 10.164 amostras, pois cada lote termina em menos de
+10 ms — abaixo do intervalo de amostragem do JFR — deixando as virtual threads
+invisíveis ao profiler. GC: $\approx$1.000 coletas Young em $\approx$110 s
+($<1\%$ de pausa). Não é gargalo.
 
-\textbf{Hot Methods.}
-Foram coletadas 12.157 amostras de CPU no total. A
-Tabela~\ref{tab:jfr-hot-v2-platform} mostra os métodos mais frequentes.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lrl}
-\hline
-\textbf{Método} & \textbf{CPU (\%)} & \textbf{Categoria} \\
-\hline
-\texttt{FloatingDecimal.parseDouble}           & 86{,}6 (main) & Parsing CSV \\
-\texttt{FloatingDecimal.readJavaFormatString}  & --- & Parsing CSV \\
-\texttt{String.split}                          & --- & Parsing CSV \\
-\texttt{BufferedReader.readLine}               & --- & I/O \\
-\texttt{KMeans.closestCentroid}                & 13{,}4 (workers) & Algoritmo \\
-\texttt{KMeans.squaredDistance}                & --- & Algoritmo \\
-\hline
-\end{tabular}
-\caption{Hot methods na implementação v2-platform (JFR, 12.157 amostras).}
-\label{tab:jfr-hot-v2-platform}
-\end{table}
-
-A thread \texttt{main} concentra 10.521 amostras (86,6\%), com parsing CSV
-dominando. Os 16 workers de plataforma somam 1.636 amostras (13,4\%),
-com \texttt{closestCentroid} e \texttt{squaredDistance} no topo.
-
-\textbf{GC.}
-Foram realizadas 1.005 coletas Young GC em 113 s (8,9/s), com pausa total de
-1.006 ms (0,89\%). O heap oscila entre $\approx$5 MB e $\approx$250 MB. O GC não é um gargalo.
-
-\textbf{Threads.}
-O peak foi de 24 threads ativas: 1 \texttt{main}, 16 workers de plataforma e
-7 threads internas da JVM (GC, JIT, JFR).
-
-\textbf{Síntese.}
-O parsing CSV domina o CPU na thread \texttt{main} (86,6\%). Os workers
-executam o cálculo aritmético em paralelo (13,4\%).
-
-\subparagraph{v2-virtual --- Virtual Threads.}
-
-\textbf{Hot Methods.}
-Foram coletadas 10.164 amostras de CPU no total. A
-Tabela~\ref{tab:jfr-hot-v2-virtual} mostra os métodos mais frequentes.
+\subparagraph{v2-hybrid.}
 
 \begin{table}[H]
 \centering
@@ -386,91 +237,20 @@ Tabela~\ref{tab:jfr-hot-v2-virtual} mostra os métodos mais frequentes.
 \hline
 \textbf{Método} & \textbf{CPU (\%)} & \textbf{Categoria} \\
 \hline
-\texttt{String.split}                          & 99{,}8 (main) & Parsing CSV \\
-\texttt{FloatingDecimal.copyDigits}            & --- & Parsing CSV \\
-\texttt{FloatingDecimal.readJavaFormatString}  & --- & Parsing CSV \\
-\texttt{BufferedReader.readLine}               & --- & I/O \\
-\texttt{KMeans.closestCentroid}                & 0{,}2 (workers) & Algoritmo \\
-\hline
-\end{tabular}
-\caption{Hot methods na implementação v2-virtual (JFR, 10.164 amostras).}
-\label{tab:jfr-hot-v2-virtual}
-\end{table}
-
-A thread \texttt{main} concentra 10.143 amostras (99,8\%). Apenas 21 amostras
-foram capturadas em workers --- todas no carrier \texttt{ForkJoinPool-1-worker-1}.
-Os demais carriers não aparecem porque cada lote termina em menos de 10 ms
-(intervalo de amostragem do JFR). O parsing CSV domina o CPU.
-
-\textbf{GC.}
-Foram realizadas 1.148 coletas Young GC em 109 s (10,5/s), com pausa total de
-955 ms (0,88\%). O GC não constitui gargalo.
-
-\textbf{Threads.}
-O peak foi de 10 threads ativas: 1 \texttt{main}, carriers do \texttt{ForkJoinPool}
-(raramente visíveis ao JFR) e threads internas da JVM.
-
-\textbf{Síntese.}
-O parsing CSV domina o CPU (99,8\%). As tarefas de lote são CPU-bound e de
-curta duração, não chegando a acionar o mecanismo de unmount das virtual threads.
-
-\subparagraph{v2-hybrid --- Abordagem Híbrida.}
-
-\textbf{Hot Methods.}
-Foram coletadas 2.133 amostras de CPU no total. A
-Tabela~\ref{tab:jfr-hot-v2-hybrid} mostra os métodos mais frequentes.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lrl}
-\hline
-\textbf{Método} & \textbf{CPU (\%)} & \textbf{Categoria} \\
-\hline
-\texttt{KMeans.squaredDistance}  & 83{,}4 (workers)    & Algoritmo \\
-\texttt{KMeans.closestCentroid}  & 14{,}2 (workers)    & Algoritmo \\
-\texttt{KMeans.addPoint}         &  1{,}5 (workers)    & Algoritmo \\
-coordenador virtual              &  0{,}1              & Coordenação \\
+\texttt{KMeans.squaredDistance}  & 83{,}4 (workers) & Algoritmo \\
+\texttt{KMeans.closestCentroid}  & 14{,}2 (workers) & Algoritmo \\
+\texttt{KMeans.addPoint}         &  1{,}5 (workers) & Algoritmo \\
+coordenador virtual              &  0{,}1           & Coordenação \\
 \hline
 \end{tabular}
 \caption{Hot methods na implementação v2-hybrid (JFR, 2.133 amostras).}
 \label{tab:jfr-hot-v2-hybrid}
 \end{table}
 
-Os workers de plataforma concentram 2.130 amostras (99,9\%), com
-\texttt{squaredDistance} (83,4\%) e \texttt{closestCentroid} (14,2\%) no topo.
-O coordenador virtual aparece em apenas 3 amostras (0,1\%): durante
-\texttt{readLine} e \texttt{Future.get()}, a virtual thread desmonta e libera
-o carrier, tornando-se invisível ao JFR.
-
-\textbf{GC.}
-Foram realizadas 1.072 coletas Young GC em 140 s (7,7/s), com pausa total de
-1.178 ms (0,84\%). O GC não constitui gargalo.
-
-\textbf{Threads.}
-O peak foi de 28 threads ativas: 1 \texttt{main}, 1 virtual thread coordenadora,
-16 workers de plataforma e $\approx$10 threads internas da JVM.
-
-\textbf{Síntese.}
-O parsing CSV desaparece do perfil de CPU: o coordenador virtual desmonta
-durante \texttt{readLine}, e o profiler captura apenas o trabalho aritmético
-dos workers.
-
-\iffalse % ============================================================
-% ERLANG — seção desativada, manter para uso futuro
-\subsection{\sout{Implementação em Erlang}}
-
-\subsubsection{\sout{Descrição}}
-
-\subsubsection{\sout{Resultados}}
-
-\paragraph{\sout{Avaliação de Condição de Corrida}}
-
-\paragraph{\sout{Avaliação com Microbenchmark}}
-
-\paragraph{\sout{Avaliação com Macrobenchmark}}
-
-\paragraph{\sout{Avaliação de Profile}}
-\fi % ============================================================
+O coordenador virtual desmonta durante \texttt{readLine} e \texttt{Future.get()},
+tornando o parsing CSV invisível ao JFR. Os 16 workers de plataforma concentram
+99,9\% das amostras, com \texttt{squaredDistance} e \texttt{closestCentroid} no
+topo. GC: 1.072 coletas em 140 s (0,84\% de pausa). Não é gargalo.
 
 \subsection{Discussão}
 

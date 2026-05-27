@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.12.11)  26 MAY 2026 08:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.12.11)  26 MAY 2026 21:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -369,7 +369,7 @@ Package hyperref Info: Link coloring OFF on input line 14.
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
-<img/logo.png, id=124, 2007.5pt x 2258.4375pt>
+<img/logo.png, id=156, 2007.5pt x 2258.4375pt>
 File: img/logo.png Graphic file (type png)
 <use img/logo.png>
 Package pdftex.def Info: img/logo.png  used on input line 19.
@@ -403,12 +403,8 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 \tf@toc=\write4
 \openout4 = `main.toc'.
 
- [1] (./sections/1-intro.tex) (./sections/2-configs.tex
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 13.
- (/usr/share/texmf/tex/latex/lm/ts1lmr.fd
-File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 31.
+ [1] (./sections/1-intro.tex
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 34.
  (/usr/share/texmf/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -416,28 +412,33 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [2{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
-Underfull \hbox (badness 1917) in paragraph at lines 82--83
+) [2{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}] (./sections/2-configs.tex
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 13.
+ (/usr/share/texmf/tex/latex/lm/ts1lmr.fd
+File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
+)
+Underfull \hbox (badness 1917) in paragraph at lines 56--57
 []\T1/lmr/m/n/12 (+20) Execução curta (\T1/lmr/m/it/12 (+20) k\T1/lmr/m/n/12 (+20) =10, max-Iter=5,
  []
 
-<img/2-configs/jmh-config.png, id=183, 1401.235pt x 1067.99pt>
+[3{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
+<img/2-configs/jmh-config.png, id=229, 1401.235pt x 1067.99pt>
 File: img/2-configs/jmh-config.png Graphic file (type png)
 <use img/2-configs/jmh-config.png>
-Package pdftex.def Info: img/2-configs/jmh-config.png  used on input line 96.
+Package pdftex.def Info: img/2-configs/jmh-config.png  used on input line 70.
 (pdftex.def)             Requested size: 385.02547pt x 293.44557pt.
-[3
+ [4
 pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.100 
-      ] [4
+l.89     \item \texttt
+                      {-XX:+UseParallelGC} â€” ParallelGC (coletor paralelo ...
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.140 
-       <./img/2-configs/jmh-config.png>]
-Underfull \hbox (badness 1189) in paragraph at lines 175--176
+l.89     \item \texttt
+                      {-XX:+UseParallelGC} â€” ParallelGC (coletor paralelo ... <./img/2-configs/jmh-config.png>]
+Underfull \hbox (badness 1189) in paragraph at lines 149--150
 []\T1/lmr/m/n/12 (+20) Leitura con-cor-rente de \T1/lmtt/m/n/12 double[]
  []
 
@@ -445,317 +446,326 @@ Underfull \hbox (badness 1189) in paragraph at lines 175--176
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.195 
+l.164 
       
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.195 
+l.164 
       
 pdfTeX warning (ext4): destination with the same identifier (name{table.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.195 
-      ]) (./sections/3-serial.tex
-<img/3-serial/class-diagram.png, id=206, 631.35875pt x 489.83pt>
+l.164 
+      ])
+Overfull \hbox (7.03389pt too wide) in paragraph at lines 212--46
+\T1/lmr/m/n/12 (-20) número de co-le-tas GC e palavras recla-madas (\T1/lmtt/m/n/12 erlang:statistics(garbage_collection)\T1/lmr/m/n/12 (-20) ),
+ []
+
+[6
+pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.46 \newpage
+             ] (./sections/3-serial.tex
+<img/3-serial/class-diagram.png, id=253, 631.35875pt x 489.83pt>
 File: img/3-serial/class-diagram.png Graphic file (type png)
 <use img/3-serial/class-diagram.png>
 Package pdftex.def Info: img/3-serial/class-diagram.png  used on input line 27.
 (pdftex.def)             Requested size: 271.7835pt x 210.86197pt.
- [6
-pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.31 
-     ]
+
 Overfull \hbox (3.34454pt too wide) in paragraph at lines 32--36
 []\T1/lmr/m/n/12 (-20) O dataset é pro-ces-sado em modo \T1/lmr/m/it/12 (-20) stream-ing\T1/lmr/m/n/12 (-20) : a cada it-er-ação do al-go-ritmo, \T1/lmtt/m/n/12 forEachPoint
  []
 
-<img/3-serial/snippet-1.png, id=214, 1401.235pt x 730.73pt>
+<img/3-serial/snippet-1.png, id=255, 1401.235pt x 730.73pt>
 File: img/3-serial/snippet-1.png Graphic file (type png)
 <use img/3-serial/snippet-1.png>
 Package pdftex.def Info: img/3-serial/snippet-1.png  used on input line 39.
 (pdftex.def)             Requested size: 385.02547pt x 200.77853pt.
-<img/3-serial/snippet-2.png, id=216, 1298.8525pt x 469.755pt>
-File: img/3-serial/snippet-2.png Graphic file (type png)
-<use img/3-serial/snippet-2.png>
-Package pdftex.def Info: img/3-serial/snippet-2.png  used on input line 51.
-(pdftex.def)             Requested size: 385.02547pt x 139.2503pt.
 [7
 pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.55 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.55 
-      <./img/3-serial/class-diagram.png> <./img/3-serial/snippet-1.png>]
-<img/3-serial/snippet-3.png, id=227, 1164.35pt x 1029.8475pt>
+l.43 
+      <./img/3-serial/class-diagram.png>]
+<img/3-serial/snippet-2.png, id=264, 1298.8525pt x 469.755pt>
+File: img/3-serial/snippet-2.png Graphic file (type png)
+<use img/3-serial/snippet-2.png>
+Package pdftex.def Info: img/3-serial/snippet-2.png  used on input line 51.
+(pdftex.def)             Requested size: 385.02547pt x 139.2503pt.
+<img/3-serial/snippet-3.png, id=266, 1164.35pt x 1029.8475pt>
 File: img/3-serial/snippet-3.png Graphic file (type png)
 <use img/3-serial/snippet-3.png>
 Package pdftex.def Info: img/3-serial/snippet-3.png  used on input line 63.
 (pdftex.def)             Requested size: 385.02547pt x 340.54216pt.
  [8
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.67 
+     
 pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.91 \end{table}
-                
+l.67 
+      <./img/3-serial/snippet-1.png> <./img/3-serial/snippet-2.png>] [9
 pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.91 \end{table}
-                 <./img/3-serial/snippet-2.png> <./img/3-serial/snippet-3.png>] [9
+l.120 
+      
 pdfTeX warning (ext4): destination with the same identifier (name{table.6}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.158 
-      
-pdfTeX warning (ext4): destination with the same identifier (name{table.7}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.158 
-      ]
-Overfull \hbox (2.0915pt too wide) in paragraph at lines 179--182
+l.120 
+       <./img/3-serial/snippet-3.png>]
+Overfull \hbox (2.0915pt too wide) in paragraph at lines 177--180
 []\T1/lmr/bx/n/12 (-20) Síntese. \T1/lmr/m/n/12 (-20) O prin-ci-pal gar-galo é o pars-ing CSV (\T1/lmtt/m/n/12 String.split \T1/lmr/m/n/12 (-20) + \T1/lmtt/m/n/12 Double.parseDouble\T1/lmr/m/n/12 (-20) ),
  []
 
-) (./sections/4-concurrent.tex [10
+[10
+pdfTeX warning (ext4): destination with the same identifier (name{table.7}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.190 
+      
 pdfTeX warning (ext4): destination with the same identifier (name{table.8}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.10 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.9}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.10 
-     ]
-<img/4-concurrent/class-diagram.png, id=254, 1006.76125pt x 588.1975pt>
+l.190 
+      ]) [11] (./sections/4-concurrent.tex
+<img/4-concurrent/class-diagram.png, id=299, 1006.76125pt x 588.1975pt>
 File: img/4-concurrent/class-diagram.png Graphic file (type png)
 <use img/4-concurrent/class-diagram.png>
-Package pdftex.def Info: img/4-concurrent/class-diagram.png  used on input line 56.
+Package pdftex.def Info: img/4-concurrent/class-diagram.png  used on input line 57.
 (pdftex.def)             Requested size: 385.02547pt x 224.94441pt.
- [11]
-<img/4-concurrent/snippet-1.png, id=261, 1620.0525pt x 544.0325pt>
+ [12]
+<img/4-concurrent/snippet-1.png, id=307, 1620.0525pt x 544.0325pt>
 File: img/4-concurrent/snippet-1.png Graphic file (type png)
 <use img/4-concurrent/snippet-1.png>
-Package pdftex.def Info: img/4-concurrent/snippet-1.png  used on input line 67.
+Package pdftex.def Info: img/4-concurrent/snippet-1.png  used on input line 68.
 (pdftex.def)             Requested size: 385.02547pt x 129.29207pt.
-<img/4-concurrent/snippet-2.png, id=263, 1264.725pt x 881.2925pt>
+<img/4-concurrent/snippet-2.png, id=309, 1264.725pt x 881.2925pt>
 File: img/4-concurrent/snippet-2.png Graphic file (type png)
 <use img/4-concurrent/snippet-2.png>
-Package pdftex.def Info: img/4-concurrent/snippet-2.png  used on input line 78.
+Package pdftex.def Info: img/4-concurrent/snippet-2.png  used on input line 79.
 (pdftex.def)             Requested size: 385.02547pt x 268.28954pt.
- [12
+ [13
 pdfTeX warning (ext4): destination with the same identifier (name{figure.6}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.82 
+l.83 
      
 pdfTeX warning (ext4): destination with the same identifier (name{figure.7}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.82 
+l.83 
       <./img/4-concurrent/class-diagram.png (PNG copy)> <./img/4-concurrent/snippet-1.png>]
-<img/4-concurrent/snippet-3.png, id=273, 1230.5975pt x 544.0325pt>
+<img/4-concurrent/snippet-3.png, id=318, 1230.5975pt x 544.0325pt>
 File: img/4-concurrent/snippet-3.png Graphic file (type png)
 <use img/4-concurrent/snippet-3.png>
-Package pdftex.def Info: img/4-concurrent/snippet-3.png  used on input line 90.
+Package pdftex.def Info: img/4-concurrent/snippet-3.png  used on input line 91.
 (pdftex.def)             Requested size: 385.02547pt x 170.20897pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 92--92
+Underfull \hbox (badness 10000) in paragraph at lines 93--93
 []\T1/lmr/m/n/12 (+20) Figure 9: []Processamento lo-cal de um lote sem ar-rays com-par-til-ha-dos
  []
 
 
-Overfull \hbox (77.87135pt too wide) in paragraph at lines 106--116
+Overfull \hbox (77.87135pt too wide) in paragraph at lines 107--117
  [][] 
  []
 
-[13
+[14
 pdfTeX warning (ext4): destination with the same identifier (name{figure.8}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.119 
+l.120 
       
 pdfTeX warning (ext4): destination with the same identifier (name{figure.9}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.119 
+l.120 
        <./img/4-concurrent/snippet-2.png> <./img/4-concurrent/snippet-3.png>]
-<img/4-concurrent/snippet-race-condition.png, id=283, 1620.0525pt x 544.0325pt>
+<img/4-concurrent/snippet-race-condition.png, id=328, 1620.0525pt x 544.0325pt>
 File: img/4-concurrent/snippet-race-condition.png Graphic file (type png)
 <use img/4-concurrent/snippet-race-condition.png>
-Package pdftex.def Info: img/4-concurrent/snippet-race-condition.png  used on input line 128.
+Package pdftex.def Info: img/4-concurrent/snippet-race-condition.png  used on input line 129.
 (pdftex.def)             Requested size: 385.02547pt x 129.29207pt.
- [14
-pdfTeX warning (ext4): destination with the same identifier (name{table.10}) has been already used, duplicate ignored
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10.95> on input line 168.
+ [15
+pdfTeX warning (ext4): destination with the same identifier (name{table.9}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.170 
+l.181 
       
 pdfTeX warning (ext4): destination with the same identifier (name{figure.10}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.170 
+l.181 
       
+pdfTeX warning (ext4): destination with the same identifier (name{table.10}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.181 
+       <./img/4-concurrent/snippet-race-condition.png>] [16
 pdfTeX warning (ext4): destination with the same identifier (name{table.11}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.170 
-       <./img/4-concurrent/snippet-race-condition.png>]
-Overfull \hbox (44.24889pt too wide) in paragraph at lines 173--183
- [][] 
- []
-
-
-Overfull \hbox (22.84743pt too wide) in paragraph at lines 192--198
-\T1/lmtt/m/n/12 Executors.newFixedThreadPool(N, Thread.ofVirtual().factory())\T1/lmr/m/n/12 (-20) , onde $\OML/lmm/m/it/12 N$ \T1/lmr/m/n/12 (-20) é o número
- []
-
-
-Overfull \hbox (32.9749pt too wide) in paragraph at lines 201--211
- [][] 
- []
-
-
-Overfull \hbox (32.02206pt too wide) in paragraph at lines 230--240
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-[15
+l.249 
+      
 pdfTeX warning (ext4): destination with the same identifier (name{table.12}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.255 \subparagraph
-                   {v2-platform --- Platform Threads.}
+l.249 
+      ] [17
 pdfTeX warning (ext4): destination with the same identifier (name{table.13}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.255 \subparagraph
-                   {v2-platform --- Platform Threads.}] [16
+l.315 \textbf{ComparaÃ§Ã£o de coletores de GC.}
+                                               
 pdfTeX warning (ext4): destination with the same identifier (name{table.14}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.325 
-      
+l.315 \textbf{ComparaÃ§Ã£o de coletores de GC.}
+                                               
 pdfTeX warning (ext4): destination with the same identifier (name{table.15}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.325 
-      
+l.315 \textbf{ComparaÃ§Ã£o de coletores de GC.}
+                                               ]) [18] (./sections/5-concurrent-x.tex
+Overfull \hbox (5.09023pt too wide) in paragraph at lines 28--41
+ [][] 
+ []
+
+[19
 pdfTeX warning (ext4): destination with the same identifier (name{table.16}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.325 
-      ] [17
+l.73 \paragraph
+               {AvaliaÃ§Ã£o com Microbenchmark}
 pdfTeX warning (ext4): destination with the same identifier (name{table.17}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.399 
-      
-pdfTeX warning (ext4): destination with the same identifier (name{table.18}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.399 
-      ] [18
-pdfTeX warning (ext4): destination with the same identifier (name{table.19}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.487 
-      
-pdfTeX warning (ext4): destination with the same identifier (name{table.20}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.487 
-      ]) (./sections/5-concurrent-x.tex [19
-pdfTeX warning (ext4): destination with the same identifier (name{table.21}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.19 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.22}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.19 
-     ]
-Overfull \hbox (508.96184pt too wide) in paragraph at lines 28--41
- [][] 
+l.73 \paragraph
+               {AvaliaÃ§Ã£o com Microbenchmark}]
+Underfull \hbox (badness 10000) in paragraph at lines 86--86
+[]\T1/lmr/m/n/12 (+20) Execução com-pleta
  []
 
 
-Overfull \hbox (1.897pt too wide) in paragraph at lines 82--92
- [][] 
+Underfull \hbox (badness 10000) in paragraph at lines 87--87
+[]\T1/lmr/m/n/12 (+20) Por it-er-ação (\T1/lmr/m/it/12 (+20) k\T1/lmr/m/n/12 (+20) =10,
  []
 
-[20
-pdfTeX warning (ext4): destination with the same identifier (name{table.23}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.99 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.24}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.99 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.25}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.99 
-     ]
+
+Underfull \hbox (badness 3838) in paragraph at lines 88--88
+[]\T1/lmtt/m/n/12 closestCentroid \T1/lmr/m/n/12 (+20) (38
+ []
+
+
+Underfull \hbox (badness 3838) in paragraph at lines 89--89
+[]\T1/lmtt/m/n/12 squaredDistance \T1/lmr/m/n/12 (+20) (38
+ []
+
+
 Overfull \hbox (12.64194pt too wide) in paragraph at lines 109--120
  [][] 
  []
 
-[21
-pdfTeX warning (ext4): destination with the same identifier (name{table.26}) has been already used, duplicate ignored
+[20
+pdfTeX warning (ext4): destination with the same identifier (name{table.18}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.195 
-      ]) (./sections/8-final.tex [22
-pdfTeX warning (ext4): destination with the same identifier (name{table.27}) has been already used, duplicate ignored
+l.145 \textbf{Threads.}
+                       
+pdfTeX warning (ext4): destination with the same identifier (name{table.19}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.38 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.28}) has been already used, duplicate ignored
+l.145 \textbf{Threads.}
+                       ]
+Overfull \hbox (24.84297pt too wide) in paragraph at lines 175--177
+[]\T1/lmr/m/n/12 (-20) Cada worker per-corre seu chunk, cal-cula o cen-tróide mais próx-imo com \T1/lmtt/m/n/12 closest_centroid
+ []
+
+
+Overfull \hbox (8.47191pt too wide) in paragraph at lines 196--200
+ []\T1/lmr/bx/n/12 (-20) Avaliação com Mi-crobench-mark[] \T1/lmr/m/n/12 (-20) Os mi-crobench-marks foram ex-e-cu-ta-dos com \T1/lmtt/m/n/12 timer:tc
+ []
+
+[21]
+Overfull \hbox (22.00114pt too wide) in paragraph at lines 241--246
+[]\T1/lmr/bx/n/12 (-20) Síntese. \T1/lmr/m/n/12 (-20) O gar-galo é du-plo: ar-it-mética por ponto (\T1/lmtt/m/n/12 squared_distance\T1/lmr/m/n/12 (-20) /\T1/lmtt/m/n/12 closest_centroid\T1/lmr/m/n/12 (-20) ,
+ []
+
+[22
+pdfTeX warning (ext4): destination with the same identifier (name{table.20}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.38 
-     ] [23
-pdfTeX warning (ext4): destination with the same identifier (name{table.29}) has been already used, duplicate ignored
+l.282 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{table.21}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.105 \subsection
-                 {LiÃ§Ãµes Aprendidas}]) [24] (./main.aux)
+l.282 
+      ]) [23
+pdfTeX warning (ext4): destination with the same identifier (name{table.22}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.55 \newpage
+             ] (./sections/6-final.tex
+Overfull \hbox (7.77028pt too wide) in paragraph at lines 51--63
+ [][] 
+ []
+
+[24
+pdfTeX warning (ext4): destination with the same identifier (name{table.23}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.75 
+     ] [25]
+Overfull \hbox (12.30293pt too wide) in paragraph at lines 143--147
+[]\T1/lmr/bx/n/12 (-20) Gargalos mi-gram. \T1/lmr/m/n/12 (-20) Com o I/O elim-i-nado na v3, o gar-galo pas-sou a ser \T1/lmtt/m/n/12 squaredDistance
+ []
+
+) [26] (./sections/7-repos.tex
+Overfull \hbox (13.55292pt too wide) in paragraph at lines 13--14
+[]\T1/lmr/bx/n/12 (-20) URL: []$\T1/lmtt/m/n/12 https : / / github . com / rarycoringa / concurrent-[]kmeans-[]java-[]application$[] 
+ []
+
+
+Overfull \hbox (25.90292pt too wide) in paragraph at lines 24--25
+[]\T1/lmr/bx/n/12 (-20) URL: []$\T1/lmtt/m/n/12 https : / / github . com / rarycoringa / concurrent-[]kmeans-[]erlang-[]application$[] 
+ []
+
+
+Overfull \hbox (113.35297pt too wide) in paragraph at lines 34--35
+[]\T1/lmr/bx/n/12 (-20) URL: []$\T1/lmtt/m/n/12 https : / / github . com / rarycoringa / concurrent-[]kmeans-[]dataset-[]generator-[]python-[]scripts$[] 
+ []
+
+) [27] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 1DB16ADA8674159FF546F145C0DA6B4C;4765.
+(rerunfilecheck)             Checksum: 47077CBED0756C676A0BEC873DE93C0A;6050.
  ) 
 Here is how much of TeX's memory you used:
- 12266 strings out of 474222
- 195306 string characters out of 5748732
- 1938975 words of memory out of 5000000
- 34052 multiletter control sequences out of 15000+600000
- 607320 words of font info for 147 fonts, out of 8000000 for 9000
+ 12310 strings out of 474222
+ 196025 string characters out of 5748732
+ 1937975 words of memory out of 5000000
+ 34073 multiletter control sequences out of 15000+600000
+ 617149 words of font info for 155 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,12n,79p,1050b,500s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmri12.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt12.pfb>
-Output written on main.pdf (25 pages, 1358301 bytes).
+ 75i,12n,79p,1050b,526s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmri12.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt12.pfb>
+Output written on main.pdf (28 pages, 1418395 bytes).
 PDF statistics:
- 455 PDF objects out of 1000 (max. 8388607)
- 386 compressed objects within 4 object streams
- 124 named destinations out of 1000 (max. 500000)
- 27432 words of extra memory for PDF output out of 29859 (max. 10000000)
+ 520 PDF objects out of 1000 (max. 8388607)
+ 443 compressed objects within 5 object streams
+ 134 named destinations out of 1000 (max. 500000)
+ 33640 words of extra memory for PDF output out of 35830 (max. 10000000)
 

@@ -36,6 +36,14 @@ exec/min com 1 thread JMeter. O perfil não registrou nenhum evento de leitura d
 arquivo durante o clustering. O custo foi o aumento do heap de $\approx$250 MB
 para $\approx$2{,}7 GB.
 
+\textbf{Erlang concorrente (modelo de atores, dados em memória).}
+Distribui chunks entre 16 workers BEAM, sem memória compartilhada. O custo por
+iteração ficou em $\approx$18{,}9 s ($12\times$ acima do Java v3). O gargalo é
+a aritmética por ponto: B3 e B4 são 113--165$\times$ mais lentos que em Java,
+pois a BEAM desempacota floats de binários sem vetorização SIMD. Os schedulers
+operaram a 45{,}7\% de utilização — a redução centralizada serializa parte de
+cada iteração.
+
 A Tabela~\ref{tab:comparativo-geral} resume os principais números de cada abordagem.
 
 \begin{table}[H]
@@ -44,14 +52,15 @@ A Tabela~\ref{tab:comparativo-geral} resume os principais números de cada abord
 \hline
 \textbf{Abordagem} & \textbf{B2 (s/op)} & \textbf{Throughput 1t} & \textbf{Throughput 16t} & \textbf{Heap pico} \\
 \hline
-Serial      & 60{,}05 &     ---    &     ---    & $\approx$250 MB \\
-v2-platform & 60{,}69 & 1{,}65/min & 4{,}49/min & $\approx$250 MB \\
-v2-virtual  & 71{,}61 & 1{,}62/min & 4{,}55/min & $\approx$250 MB \\
-v2-hybrid   & 60{,}44 & 1{,}60/min & 4{,}53/min & $\approx$250 MB \\
-v3          &  1{,}60 & 52{,}5/min & 62{,}3/min & $\approx$2{,}7 GB \\
+Serial             & 60{,}05 &     ---    &     ---    & $\approx$250 MB \\
+v2-platform        & 60{,}69 & 1{,}65/min & 4{,}49/min & $\approx$250 MB \\
+v2-virtual         & 71{,}61 & 1{,}62/min & 4{,}55/min & $\approx$250 MB \\
+v2-hybrid          & 60{,}44 & 1{,}60/min & 4{,}53/min & $\approx$250 MB \\
+v3                 &  1{,}60 & 52{,}5/min & 62{,}3/min & $\approx$2{,}7 GB \\
+Erlang (16 workers)& 18{,}87 &     N/A    &     N/A    & $\approx$1{,}75 GB \\
 \hline
 \end{tabular}
-\caption{Comparativo geral entre abordagens (B2 = custo por iteração, JMH; throughput = exec/min, JMeter ParallelGC).}
+\caption{Comparativo geral entre abordagens (B2 = custo por iteração; throughput = exec/min, JMeter ParallelGC; Erlang sem macrobenchmark HTTP).}
 \label{tab:comparativo-geral}
 \end{table}
 
@@ -85,6 +94,28 @@ A virtual thread em tarefas CPU-bound de curta duração introduz variância ele
 no JMH (até $\pm$260 s), pois o \texttt{ForkJoinPool} não foi projetado para
 tarefas que nunca bloqueiam.
 
+\subsubsection*{Erlang --- Concorrência por Atores}
+
+\textbf{Positivos.}
+Race conditions são impossíveis por construção: processos não compartilham memória,
+eliminando a necessidade de locks, atomics ou \texttt{volatile}. O GC é por
+processo e sem pausas globais: nenhum stop-the-world afeta todos os workers
+simultaneamente. Workers de longa duração mantêm os chunks em seus heaps locais
+sem overhead de cópia, graças à semântica de referência dos binários grandes da
+BEAM. O modelo de atores escala naturalmente para clusters distribuídos sem
+mudança de paradigma.
+
+\textbf{Negativos.}
+A aritmética por ponto é 113--165$\times$ mais lenta que em Java: a BEAM
+desempacota floats de binários elemento a elemento sem geração de código SIMD.
+Os schedulers operaram a 45{,}7\% de utilização: a redução centralizada no processo
+principal (\texttt{collect\_partial} + recompute) é um gargalo serial que mantém
+os workers ociosos $\approx$54\% do tempo. A reconstrução de listas de somas via
+\texttt{update\_nth} gerou 2{,}1 milhões de coletas GC por alocação excessiva de
+células de lista --- custo inexistente em Java, que acumula em arrays mutáveis
+locais. A ausência de servidor HTTP inviabilizou a comparação de throughput com
+JMeter nas mesmas condições das versões Java.
+
 \subsubsection*{v3 --- Dados em Memória com CountDownLatch}
 
 \textbf{Positivos.}
@@ -105,32 +136,28 @@ reiniciado frequentemente.
 \subsection{Lições Aprendidas}
 
 \textbf{Medir antes de paralelizar.}
-Sem o profile da versão serial, seria natural assumir que paralelizar o loop de
-atribuição bastaria para acelerar o algoritmo. O JFR mostrou que 87\% do tempo era
-parsing CSV --- tornar paralelo os outros 13\% dificilmente produziria ganho
-perceptível.
+O JFR mostrou que 87\% do tempo serial era parsing CSV. Paralelizar apenas o
+loop aritmético (13\% do total) dificilmente produziria ganho perceptível sem
+antes eliminar o gargalo de I/O.
 
 \textbf{Gargalos migram.}
-Depois que o I/O foi eliminado na v3, o verdadeiro gargalo computacional tornou-se
-visível: \texttt{squaredDistance} e \texttt{closestCentroid} no loop interno. Em
-implementações futuras, esse é o ponto a otimizar (SIMD, vetorização, redução de
-dimensionalidade).
+Com o I/O eliminado na v3, o gargalo passou a ser \texttt{squaredDistance} e
+\texttt{closestCentroid}. Em iterações futuras, esse é o ponto a otimizar
+(SIMD, vetorização, redução de dimensionalidade).
 
 \textbf{Virtual threads não são bala de prata para CPU-bound.}
-Virtual threads brilham quando há bloqueio I/O: o carrier é liberado e reutilizado.
-Em tarefas puramente aritméticas, elas não oferecem vantagem sobre platform threads
-e podem introduzir variância de escalonamento. A escolha certa depende do perfil
-da tarefa.
+Virtual threads brilham com bloqueio I/O, liberando o carrier para reuso.
+Em tarefas puramente aritméticas, não oferecem vantagem sobre platform threads
+e podem introduzir variância de escalonamento indesejada.
 
-\textbf{O modelo de acumulação local escala bem.}
-O padrão map-reduce local (cada worker acumula em arrays próprios, a thread
-coordenadora reduz no final) evitou toda sincronização interna sem locks, atomics
-ou \texttt{volatile}. A corretude foi verificável formalmente via JCStress, que
-confirmou a ausência de race conditions nas operações reais e a presença delas
-quando a proteção é removida (JCS3, JCS4).
+\textbf{Acumulação local elimina sincronização.}
+O padrão map-reduce local — cada worker acumula em arrays próprios, a thread
+coordenadora reduz no final — evitou locks, atomics e \texttt{volatile}.
+O JCStress confirmou a ausência de race conditions nas operações reais e sua
+presença ao remover a proteção (JCS3, JCS4).
 
-\textbf{O custo de abstração importa.}
-A troca de \texttt{List<Future<PartialResult>>} por \texttt{CountDownLatch} + array
-de resultados eliminou a alocação de centenas de objetos por iteração. Pequenas
-decisões de design (tamanho do lote, estrutura de retorno, tipo de sincronizador)
-têm impacto mensurável em cargas de trabalho longas.
+\textbf{O modelo de atores não é universal.}
+K-Means é CPU-bound com comunicação mínima entre iterações — perfil que favorece
+memória compartilhada. O modelo de atores Erlang brilha em sistemas distribuídos,
+I/O intensivo e alta disponibilidade, onde o isolamento de processos é vantagem
+estrutural, não custo.

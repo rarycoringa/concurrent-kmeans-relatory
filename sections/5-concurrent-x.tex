@@ -25,17 +25,17 @@ sobre o array compartilhado (somente leitura) com acumulação em arrays locais.
 
 \begin{table}[H]
 \centering
-\begin{tabular}{ll}
+\begin{tabular}{lp{12cm}}
 \hline
 \textbf{Componente} & \textbf{Alteração} \\
 \hline
-\texttt{CsvDataset}    & adicionado \texttt{loadAllPoints()} \\
-\texttt{KMeans}        & nova assinatura \texttt{cluster(double[][], ...)};
-                         \texttt{CountDownLatch} em vez de lista de \texttt{Future}s;
-                         \texttt{processChunk} em vez de \texttt{processAssignBatch};
-                         \texttt{DoubleAdder} para SSE \\
-\texttt{KMeansBenchmark} & \texttt{double[][] points} pré-carregado em \texttt{@Setup(Level.Trial)} \\
-\texttt{KMeansSampler}   & \texttt{static volatile} \texttt{sharedPoints} com double-checked locking \\
+\texttt{CsvDataset}      & adicionado \texttt{loadAllPoints()} \\
+\texttt{KMeans}          & nova assinatura \texttt{cluster(double[][], ...)};
+                           \texttt{CountDownLatch} em vez de \texttt{Future}s;
+                           \texttt{processChunk} em vez de \texttt{processAssignBatch};
+                           \texttt{DoubleAdder} para SSE \\
+\texttt{KMeansBenchmark} & \texttt{points} pré-carregado em \texttt{@Setup(Level.Trial)} \\
+\texttt{KMeansSampler}   & \texttt{static volatile sharedPoints} com double-checked locking \\
 \hline
 \end{tabular}
 \caption{Alterações da v3 em relação à v2-virtual.}
@@ -79,14 +79,14 @@ início das medições (\texttt{@Setup(Level.Trial)}).
 
 \begin{table}[H]
 \centering
-\begin{tabular}{llrrrr}
+\begin{tabular}{lp{4.2cm}rrrr}
 \hline
-\textbf{ID} & \textbf{Benchmark} & \textbf{Serial} & \textbf{v3} & \textbf{Erro ($\pm$)} & \textbf{Unidade} \\
+\textbf{ID} & \textbf{Benchmark} & \textbf{Serial} & \textbf{v3} & \textbf{Erro ($\pm$)} & \textbf{Un.} \\
 \hline
-B1 & Execução completa (\textit{k}=10, maxIter=20) & 212{,}57 &  4{,}55 & 17{,}98 & s/op \\
-B2 & Custo por iteração (\textit{k}=10, maxIter=5) &  60{,}05 &  1{,}60 &  0{,}17 & s/op \\
-B3 & \texttt{closestCentroid} (\textit{k}=10, 38 dims)  & 96{,}82 & 96{,}82 & --- & ns/op \\
-B4 & \texttt{squaredDistance} (38 dims)                  &  9{,}31 &  9{,}31 & --- & ns/op \\
+B1 & Execução completa (\textit{k}=10, iter=20) & 212{,}57 &  4{,}55 & 17{,}98 & s/op \\
+B2 & Por iteração (\textit{k}=10, iter=5)        &  60{,}05 &  1{,}60 &  0{,}17 & s/op \\
+B3 & \texttt{closestCentroid} (38 dims)           &  96{,}82 & 96{,}82 &     --- & ns/op \\
+B4 & \texttt{squaredDistance} (38 dims)           &   9{,}31 &  9{,}31 &     --- & ns/op \\
 \hline
 \end{tabular}
 \caption{Resultados JMH --- serial vs.\ v3 (dados em memória).}
@@ -152,31 +152,104 @@ O parsing CSV desaparece completamente do perfil de execução. O tempo é gasto
 inteiramente em computação aritmética (\texttt{closestCentroid},
 \texttt{squaredDistance}) distribuída entre os $N$ workers.
 
-\iffalse % ============================================================
-% ERLANG — seção desativada, manter para uso futuro
-\subsection{\sout{Implementação em Erlang}}
+\subsection{Implementação em Erlang}
 
-\subsubsection{\sout{Descrição}}
+\subsubsection{Descrição}
 
-\subsubsection{\sout{Resultados}}
+A implementação concorrente em Erlang segue o modelo de atores da BEAM: processos
+isolados que se comunicam exclusivamente por troca de mensagens, sem memória compartilhada.
 
-\paragraph{\sout{Avaliação de Condição de Corrida}}
+O dataset é carregado uma única vez na memória pelo processo principal, com cada
+ponto representado como um binário compacto de 304 bytes
+(\texttt{<<V1:64/float, V2:64/float, ..., V38:64/float>>}). Binários maiores que
+64 bytes são armazenados em um heap compartilhado com contagem de referências,
+não sendo copiados ao serem enviados entre processos --- equivalente ao
+\texttt{double[][]} do Java em termos de custo de distribuição.
 
-\paragraph{\sout{Avaliação com Microbenchmark}}
+São criados $N = 16$ processos workers de longa duração (\textit{long-lived}),
+um por scheduler BEAM disponível. Cada worker recebe seu chunk de pontos uma
+única vez na inicialização e o mantém em seu heap local. Por iteração:
 
-\paragraph{\sout{Avaliação com Macrobenchmark}}
+\begin{enumerate}
+    \item O processo principal envia \texttt{\{iterate, Centroids, From\}} a cada worker.
+    \item Cada worker percorre seu chunk, calcula o centróide mais próximo
+          com \texttt{closest\_centroid} e acumula somas e contagens parciais locais.
+    \item Cada worker envia \texttt{\{partial, Sums, Counts\}} de volta ao principal.
+    \item O principal coleta $N$ respostas, mescla os parciais e recomputa os centróides.
+\end{enumerate}
 
-\paragraph{\sout{Avaliação de Profile}}
-\fi % ============================================================
+Os centróides são mantidos como listas de floats (\texttt{[float()]}),
+pois são pequenos ($k \times d \times 8$ bytes $\approx$ 3 KB) e
+precisam suportar atualização por divisão elemento a elemento.
+
+\subsubsection{Resultados}
+
+\paragraph{Condição de Corrida}
+
+Por construção, o modelo de atores Erlang não possui memória compartilhada entre
+processos. Cada worker acumula somas e contagens em seu próprio heap, e o
+processo principal é o único a ler e escrever os centróides. Não há race
+conditions possíveis, dispensando sincronização explícita.
+
+\paragraph{Avaliação com Microbenchmark}
+
+Os microbenchmarks foram executados com \texttt{timer:tc} sobre OTP 25 (BEAM JIT
+habilitado), com 1 execução de aquecimento e 3 execuções de medição, todas com
+$k = 10$ e \texttt{maxIter} = 5. O dataset ($\approx$1 GB) foi carregado em
+memória uma única vez antes das medições.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llrr}
+\hline
+\textbf{ID} & \textbf{Benchmark} & \textbf{Erlang concorrente} & \textbf{Unidade} \\
+\hline
+B1 & Execução completa (\textit{k}=10, maxIter=5) & 106.344{,}7 & ms/op \\
+B3 & \texttt{closest\_centroid} (\textit{k}=10, 38 dims) & 15.976{,}0 & ns/op \\
+B4 & \texttt{squared\_distance} (38 dims)                &  1.052{,}7 & ns/op \\
+\hline
+\end{tabular}
+\caption{Resultados de microbenchmark para a implementação concorrente em Erlang
+         (16 workers, \texttt{timer:tc}).}
+\label{tab:bench-erlang-concurrent}
+\end{table}
+
+B1 reflete o custo total de 5 iterações sobre 5,75 M pontos com 16 workers.
+B3 e B4 isolam a aritmética por ponto: \texttt{closest\_centroid} leva 15,98 µs
+e \texttt{squared\_distance} 1,05 µs por chamada.
+
+\paragraph{Avaliação de Profile}
+
+O profile foi capturado com \texttt{erlang:statistics} sobre uma execução completa
+($k=10$, \texttt{maxIter}=10, 16 workers, dataset $\approx$1 GB). A execução durou
+188,7\,s de parede, equivalente a $\approx$18,9\,s por iteração.
+
+\textbf{Schedulers.}
+A utilização média dos schedulers BEAM foi de 45,7\%. Os workers ficam ociosos
+enquanto o processo principal executa \texttt{collect\_partial} e recomputa
+centróides serialmente; durante esse intervalo os 16 workers aguardam na caixa
+de mensagens sem consumir CPU.
+
+\textbf{GC.}
+Foram realizadas 2.129.920 coletas GC em 188,7\,s (11.329/s), com 246,5 bilhões
+de palavras reclamadas ($\approx$1,97 TB). O volume elevado reflete a alta taxa
+de alocação por ponto: \texttt{update\_nth} reconstrói parcialmente a lista de
+somas a cada ponto processado, gerando lixo proporcional a $k \times d$ por
+chamada. O GC per-processo da BEAM coleta esse lixo de forma isolada, sem pausas
+globais, mas com custo acumulado significativo.
+
+\textbf{Síntese.}
+O gargalo é duplo: aritmética por ponto
+(\texttt{squared\_distance}/\texttt{closest\_centroid}, 113--165$\times$ mais
+lenta que Java) e redução serial (main process coleta parciais sequencialmente,
+mantendo schedulers ociosos $\approx$54\% do tempo).
 
 \subsection{Discussão}
 
-\textbf{Eliminação do gargalo de I/O.}
+\textbf{Java v2 $\to$ v3: eliminação do gargalo de I/O.}
 Nas versões v2, o parsing CSV consumia 86--99\% do CPU em cada iteração. Na v3,
-nenhum evento de leitura de arquivo é registrado durante o clustering. O custo por
-iteração (B2) caiu de $\approx$60 s para $\approx$1{,}6 s --- uma redução de 37$\times$.
-
-\textbf{Comparação com versões anteriores --- microbenchmark.}
+nenhum evento de leitura de arquivo é registrado durante o clustering. A
+Tabela~\ref{tab:jmh-comparativo-v3} resume o impacto.
 
 \begin{table}[H]
 \centering
@@ -193,33 +266,56 @@ v3          &   4{,}55 &  1{,}60 &  $\pm$17{,}98 &   $\pm$0{,}17 \\
 \label{tab:jmh-comparativo-v3}
 \end{table}
 
-A v3 é a primeira abordagem a superar o serial: B2 de 1{,}60 s contra 60{,}05 s,
-uma melhora de $\approx$37$\times$. A variância de B1 ($\pm$18 s) é muito menor
-do que em v2-virtual ($\pm$260 s), porque a carga de trabalho de cada iteração
-é agora uniforme e previsível.
+B2 cai de 60 s para 1{,}6 s ($37\times$): o custo dominante deixa de ser I/O e
+passa a ser computação aritmética pura. A variância de B1 colapsa de $\pm$260 s
+(v2-virtual) para $\pm$18 s (v3): sem I/O, cada iteração tem carga uniforme e
+previsível. No macrobenchmark, o throughput com 1 thread JMeter salta de 1{,}62
+para 52{,}5 exec/min ($32\times$); com 16 threads o ganho cai para $14\times$
+porque os processos concorrentes competem pelos mesmos núcleos. Como trade-off, o
+heap pico cresce de $\approx$250 MB (v2) para $\approx$2{,}7 GB (v3), porém o
+número de coletas GC cai de 1.000+ para 60, pois há muito menos alocação
+transiente por iteração.
 
-\textbf{Comparação com versões anteriores --- macrobenchmark.}
+\textbf{Java v3 vs.\ Erlang: modelo de memória vs.\ modelo de atores.}
+Com o I/O eliminado em ambas as implementações, a comparação entre Java v3 e Erlang
+torna-se justa. A Tabela~\ref{tab:bench-erlang-vs-v3} expõe a diferença.
 
 \begin{table}[H]
 \centering
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrr}
 \hline
-\textbf{Abordagem} & \textbf{1 t} & \textbf{2 t} & \textbf{4 t} & \textbf{8 t} & \textbf{16 t} \\
+\textbf{ID} & \textbf{Java v3} & \textbf{Erlang} & \textbf{Fator ($\times$ mais lento)} & \textbf{Un.} \\
 \hline
-v2-virtual (ParallelGC) & 1{,}62 & 2{,}13 & 2{,}14 & 3{,}77 &  4{,}34 \\
-v3 (ParallelGC)         & 52{,}5 & 56{,}0 & 57{,}1 & 57{,}2 & 62{,}3  \\
+B1/B2 (maxIter=5) & 1.600{,}0 & 106.344{,}7 & 66{,}5 & ms/op \\
+B3                &    96{,}82 &  15.976{,}0 & 165    & ns/op \\
+B4                &     9{,}31 &   1.052{,}7 & 113    & ns/op \\
 \hline
 \end{tabular}
-\caption{Throughput (exec/min, ParallelGC) --- v2-virtual vs.\ v3.}
-\label{tab:jmeter-comparativo-v3}
+\caption{Comparativo Java v3 vs.\ Erlang concorrente (ambos em memória, 16 workers).}
+\label{tab:bench-erlang-vs-v3}
 \end{table}
 
-Com 1 thread JMeter, o throughput saltou de 1{,}62 para 52{,}5 exec/min
-($\approx$32$\times$). Com 16 threads, de 4{,}34 para 62{,}3 exec/min
-($\approx$14$\times$). O ganho menor em 16 threads ocorre porque múltiplos
-processos de clustering competem pelos mesmos núcleos.
+A diferença de 66,5$\times$ no tempo total é explicada inteiramente pela aritmética
+por ponto (B3/B4): o JIT da JVM compila loops sobre \texttt{double[]} em código
+nativo com potencial de vetorização SIMD, enquanto a BEAM desempacota floats de
+binários elemento a elemento (\texttt{<<V:64/float, Rest/binary>>}) sem esse caminho
+de otimização.
 
-\textbf{Custo de memória.}
-O heap pico aumentou de $\approx$250 MB (v2) para $\approx$2{,}7 GB (v3), reflexo
-do dataset inteiro em memória. O número de eventos GC caiu (60 vs.\ 1.000+ na v2)
-porque há muito menos alocação transiente por iteração.
+Além da aritmética, dois fatores estruturais amplificam a diferença. Primeiro, a
+utilização dos schedulers BEAM ficou em apenas 45,7\%: enquanto o processo
+principal executa \texttt{collect\_partial} e recomputa centróides serialmente,
+os 16 workers aguardam na caixa de mensagens sem consumir CPU --- uma ineficiência
+inerente ao padrão de coordenação centralizada. Em Java v3, os workers operam sobre
+um array compartilhado (somente leitura) e o coordenador usa \texttt{CountDownLatch},
+mantendo todos os núcleos ativos até o final de cada iteração. Segundo, o GC Erlang
+realizou 2,13 milhões de coletas (por processo, sem pausas globais) contra apenas 60
+coletas na JVM: \texttt{update\_nth} reconstrói parcialmente a lista de somas a cada
+ponto, gerando lixo proporcional a $k \times d$ por chamada --- custo inexistente em
+Java, que acumula em arrays mutáveis locais.
+
+\textbf{Quando cada modelo vence.}
+O K-Means é uma carga de trabalho CPU-bound com comunicação mínima entre iterações
+--- o caso em que memória compartilhada tem vantagem estrutural sobre troca de
+mensagens. O modelo de atores da Erlang traz isolamento e tolerância a falhas sem
+sincronização explícita, o que é valioso em sistemas distribuídos e de alta
+disponibilidade, mas não neste workload numérico intensivo.

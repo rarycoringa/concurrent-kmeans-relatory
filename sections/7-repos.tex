@@ -1,0 +1,36 @@
+\section{Repositórios}
+
+Os repositórios do projeto estão disponíveis no GitHub. Cada um corresponde a um
+componente do trabalho e possui tags marcando as versões entregues.
+
+\subsection*{Implementação Java}
+
+Contém o algoritmo K-Means serial e as variantes concorrentes (v2-platform,
+v2-virtual, v2-hybrid, v3), além dos benchmarks JMH, testes JCStress, macrobenchmark
+JMeter e profile JFR.
+
+\begin{itemize}
+    \item \textbf{URL:} \url{https://github.com/rarycoringa/concurrent-kmeans-java-application}
+    \item \textbf{Tags:} \texttt{v1} (serial), \texttt{v2-platform}, \texttt{v2-virtual},
+          \texttt{v2-hybrid}, \texttt{v3} (dados em memória)
+\end{itemize}
+
+\subsection*{Implementação Erlang}
+
+Contém a implementação concorrente em Erlang com o modelo de atores da BEAM,
+benchmarks com \texttt{timer:tc} e profile com \texttt{erlang:statistics}.
+
+\begin{itemize}
+    \item \textbf{URL:} \url{https://github.com/rarycoringa/concurrent-kmeans-erlang-application}
+    \item \textbf{Tags:} \texttt{v1} (concorrente, dados em memória)
+\end{itemize}
+
+\subsection*{Gerador de Dataset}
+
+Scripts Python para geração do dataset sintético de pedidos utilizado em todos os
+experimentos ($\approx$5{,}75 milhões de linhas, 38 features).
+
+\begin{itemize}
+    \item \textbf{URL:} \url{https://github.com/rarycoringa/concurrent-kmeans-dataset-generator-python-scripts}
+    \item \textbf{Tags:} nenhuma
+\end{itemize}

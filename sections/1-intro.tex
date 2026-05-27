@@ -17,14 +17,32 @@ percorrer todos os pontos a cada iteração, o algoritmo é naturalmente paralel
 na etapa de atribuição, tornando-o um caso de estudo relevante para comparação
 entre estratégias de concorrência.
 
-\iffalse % ============================================================
-% ERLANG — seção desativada, manter para uso futuro
-\subsection{\sout{Descrição da Linguagem Erlang}}
+\subsection{Descrição da Linguagem Erlang}
 
-% Descrever a linguagem de programação escolhida em termo de todos os aspectos apresentados
-% em sala de aula. No final de cada aula, é apresentado os aspectos a serem considerados
+Erlang é uma linguagem funcional criada pela Ericsson, projetada para sistemas distribuídos e
+tolerantes a falhas. Executa sobre a máquina virtual BEAM, que provê concorrência nativa por
+meio de processos leves e isolados.
 
-% Exemplo: Modelo de programação(Memória Compartilha, Passagem de Mensagens, GPU),
-% Modelo de Memória e eventuais problemas como visibilidade, Coleta de Lixo, JIT,
-% controle de região critica, etc.
-\fi % ============================================================
+\textbf{Modelo de programação.}
+Utiliza passagem de mensagens (modelo de atores). Processos não compartilham memória e se
+comunicam exclusivamente via caixas postais, eliminando por construção os problemas de acesso
+concorrente a estado compartilhado.
+
+\textbf{Modelo de memória e visibilidade.}
+Cada processo possui heap privado. Mensagens são copiadas entre heaps ao ser enviadas, o que
+garante isolamento total. Por não haver memória compartilhada mutável, questões de
+visibilidade — como barreiras de memória e \texttt{volatile} do Java — não se aplicam.
+
+\textbf{Controle de região crítica.}
+Não existem mutexes ou semáforos. O acesso a recursos exclusivos é feito encapsulando-os em
+um processo servidor que atende requisições sequencialmente — padrão formalizado pelo
+\texttt{gen\_server} OTP.
+
+\textbf{Coleta de lixo.}
+O GC opera por processo, de forma independente, sem pausas globais (\textit{stop-the-world}).
+Processos de vida curta têm seus heaps simplesmente descartados ao terminar.
+
+\textbf{JIT.}
+A partir do OTP 24, a BEAM inclui um compilador JIT (AsmJit) que gera código nativo para
+x86-64 e AArch64 no carregamento dos módulos, com ganhos típicos de 20--40\% em relação ao
+bytecode interpretado.

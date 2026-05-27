@@ -33,44 +33,18 @@ O armazenamento em disco utilizado é um \textbf{SSD NVMe} com capacidade de
 \paragraph{Java:}
 \textbf{OpenJDK 25.0.1} - Temurin-25.0.1+8 (build 25.0.1+8-LTS).
 
-\iffalse % ============================================================
-% ERLANG — seção desativada, manter para uso futuro
-\paragraph{\sout{Erlang:}}
-\sout{\textbf{Erlang/OTP} com emulador BEAM versão \texttt{13.2.2.5}.}
-\fi % ============================================================
+\paragraph{Erlang:}
+\textbf{Erlang/OTP 25}, emulador BEAM versão \texttt{13.2.2.5}, com JIT AsmJit habilitado.
     
 \subsection{Configurações de Testes}
 
 \subsubsection{Microbenchmark (JMH)}
 
-Os microbenchmarks foram implementados com \textbf{JMH 1.37} e executados sobre
-\textbf{JDK 25.0.1}. As anotações de classe definem a política global aplicada
-a todos os benchmarks:
-
-\begin{itemize}
-    \item \texttt{@BenchmarkMode(Mode.AverageTime)} — mede o tempo médio por
-          operação;
-    \item \texttt{@OutputTimeUnit(TimeUnit.SECONDS)} — resultados expressos em
-          segundos;
-    \item \texttt{@Warmup(iterations = 1, time = 10)} — 1 iteração de aquecimento
-          de 10 s para estabilizar a compilação JIT antes das medições;
-    \item \texttt{@Measurement(iterations = 3, time = 10)} — 3 iterações de
-          medição de 10 s cada;
-    \item \texttt{@Fork(1)} — 1 processo JVM isolado por benchmark, eliminando
-          interferência de estado entre casos.
-\end{itemize}
-
-Foram definidos quatro casos de benchmark, organizados em dois grupos de estado
-(\texttt{@State}):
-
-\begin{itemize}
-    \item \textbf{DatasetState} — carrega o caminho e o cabeçalho do arquivo CSV
-          uma vez por trial via \texttt{@Setup(Level.Trial)}; o caminho é
-          parametrizável via \texttt{@Param};
-    \item \textbf{HotspotState} — gera vetores aleatórios de 38 dimensões e
-          \(k = 10\) centróides com semente fixa (\texttt{seed = 42}) para
-          reprodutibilidade.
-\end{itemize}
+Os microbenchmarks foram implementados com \textbf{JMH 1.37} sobre \textbf{JDK 25.0.1},
+com modo \texttt{AverageTime}, 1 iteração de aquecimento de 10 s, 3 iterações de
+medição de 10 s e 1 fork por benchmark. O estado do dataset é inicializado uma vez
+por trial (\texttt{@Setup(Level.Trial)}) e os vetores de hotspot usam semente fixa
+(\texttt{seed = 42}) para reprodutibilidade.
 
 \begin{table}[H]
 \centering
@@ -223,3 +197,22 @@ Os eventos extraídos com \texttt{jfr print --events} cobrem quatro áreas:
           por thread e número de threads ativas;
     \item \texttt{jdk.FileRead} — eventos de leitura de arquivo (bytes lidos, duração).
 \end{itemize}
+
+\subsubsection{Microbenchmark em Erlang}
+
+Os microbenchmarks Erlang utilizam \texttt{timer:tc/1}, função nativa do OTP que
+mede o tempo de execução de uma fun com resolução de microssegundos. São executadas
+1 iteração de aquecimento e 3 de medição, com o dataset carregado uma única vez em
+memória antes de qualquer medição para eliminar o custo de I/O dos resultados.
+São medidos três casos equivalentes ao JMH: execução completa do algoritmo (B1),
+\texttt{closest\_centroid} isolado (B3) e \texttt{squared\_distance} isolado (B4).
+
+\subsubsection{Profile em Erlang}
+
+O profile Erlang coleta métricas de tempo e GC via funções nativas do OTP, sem
+necessidade de ferramentas externas. São capturados: tempo de CPU acumulado
+(\texttt{erlang:statistics(runtime)}), tempo de parede
+(\texttt{erlang:statistics(wall\_clock)}), número de coletas GC e palavras
+reclamadas (\texttt{erlang:statistics(garbage\_collection)}), e utilização média
+dos schedulers BEAM (\texttt{erlang:statistics(scheduler\_wall\_time)}). O profile
+cobre uma execução completa do algoritmo com $k=10$ e \texttt{maxIter}=10.
