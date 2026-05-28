@@ -18,8 +18,7 @@ L1d 416 KiB, L1i 448 KiB, L2 9,5 MiB e L3 20 MiB.
 
 \paragraph{RAM:}
 A memória RAM total é de \textbf{16 GB DDR5} em configuração dual-channel
-(2 $\times$ 8 GB), com velocidade máxima de 5600 MT/s e frequência configurada
-em 4800 MT/s.
+(2 $\times$ 8 GB).
 
 \paragraph{Disco:}
 O armazenamento em disco utilizado é um \textbf{SSD NVMe} com capacidade de
@@ -42,9 +41,8 @@ O armazenamento em disco utilizado é um \textbf{SSD NVMe} com capacidade de
 
 Os microbenchmarks foram implementados com \textbf{JMH 1.37} sobre \textbf{JDK 25.0.1},
 com modo \texttt{AverageTime}, 1 iteração de aquecimento de 10 s, 3 iterações de
-medição de 10 s e 1 fork por benchmark. O estado do dataset é inicializado uma vez
-por trial (\texttt{@Setup(Level.Trial)}) e os vetores de hotspot usam semente fixa
-(\texttt{seed = 42}) para reprodutibilidade.
+medição de 10 s e 1 fork por benchmark. O dataset é carregado uma única vez antes
+das medições e uma semente fixa garante reprodutibilidade dos pontos de teste.
 
 \begin{table}[H]
 \centering
@@ -115,9 +113,9 @@ Métrica primária     & Throughput (execuções/min) \\
 \subsubsection{Stress Test (JCStress)}
 
 Os testes de condição de corrida foram implementados com \textbf{JCStress 0.16} e
-executados sobre \textbf{JDK 25.0.1}. O JCStress instancia múltiplos processos JVM
-(\textit{forks}) e varia a combinação de compiladores (Interpreter, C1, C2) e a
-afinidade de CPUs entre forks, maximizando a cobertura de interleavings possíveis.
+executados sobre \textbf{JDK 25.0.1}. O JCStress executa múltiplos processos
+paralelos variando configurações de compilação e afinidade de CPU, maximizando
+a cobertura de possíveis intercalações entre threads.
 
 \begin{table}[H]
 \centering
@@ -187,15 +185,13 @@ Dataset            & $\approx$1 GB \\
 \label{tab:jfr-config}
 \end{table}
 
-Os eventos extraídos com \texttt{jfr print --events} cobrem quatro áreas:
+Os eventos analisados cobrem quatro áreas:
 
 \begin{itemize}
-    \item \texttt{jdk.ExecutionSample} — amostras de CPU por método (hot methods);
-    \item \texttt{jdk.GarbageCollection}, \texttt{jdk.GCHeapSummary} — pausas e uso
-          de heap ao longo da execução;
-    \item \texttt{jdk.JavaThreadStatistics}, \texttt{jdk.ThreadCPULoad} — carga de CPU
-          por thread e número de threads ativas;
-    \item \texttt{jdk.FileRead} — eventos de leitura de arquivo (bytes lidos, duração).
+    \item amostras de CPU por método (identificação dos hot methods);
+    \item pausas e uso de heap do coletor de GC;
+    \item carga de CPU por thread e número de threads ativas;
+    \item eventos de leitura de arquivo (bytes lidos, duração).
 \end{itemize}
 
 \subsubsection{Microbenchmark em Erlang}
@@ -210,9 +206,6 @@ São medidos três casos equivalentes ao JMH: execução completa do algoritmo (
 \subsubsection{Profile em Erlang}
 
 O profile Erlang coleta métricas de tempo e GC via funções nativas do OTP, sem
-necessidade de ferramentas externas. São capturados: tempo de CPU acumulado
-(\texttt{erlang:statistics(runtime)}), tempo de parede
-(\texttt{erlang:statistics(wall\_clock)}), número de coletas GC e palavras
-reclamadas (\texttt{erlang:statistics(garbage\_collection)}), e utilização média
-dos schedulers BEAM (\texttt{erlang:statistics(scheduler\_wall\_time)}). O profile
-cobre uma execução completa do algoritmo com $k=10$ e \texttt{maxIter}=10.
+necessidade de ferramentas externas. São capturados: tempo de CPU, tempo de parede,
+número de coletas GC e utilização média dos schedulers BEAM. O profile cobre uma
+execução completa do algoritmo com $k=10$ e \texttt{maxIter}=10.

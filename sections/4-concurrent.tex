@@ -18,13 +18,12 @@ uma tarefa independente. Os workers acumulam em arrays \emph{locais} e retornam 
 os \texttt{Future}s.
 
 Esse padrão --- \emph{dispatch em lotes, acumulação local, redução sequencial} ---
-elimina a necessidade de sincronização nas regiões críticas CR1--CR4 sem uso de
-\texttt{synchronized} ou variáveis atômicas. A chamada \texttt{Future.get()} garante
-a relação happens-before entre a escrita dos workers e a leitura da coordenadora.
+elimina a necessidade de sincronização sem uso de \texttt{synchronized} ou variáveis
+atômicas. A coordenadora aguarda todos os resultados antes de prosseguir, garantindo
+que não há leitura de dados ainda sendo escritos.
 
-Uma cópia imutável dos centróides (\texttt{snapshot}) é tirada antes do dispatch de
-cada iteração, garantindo que todos os workers vejam o mesmo estado de centróides
-durante a iteração em andamento.
+Uma cópia dos centróides é tirada antes do início de cada iteração, garantindo que
+todos os workers trabalhem com o mesmo estado durante aquela iteração.
 
 Foram implementadas três variantes concorrentes:
 
@@ -34,11 +33,9 @@ Foram implementadas três variantes concorrentes:
     \item \textbf{v2-virtual} --- pool fixo de $N$ virtual threads para os workers,
           mesma estrutura de v2-platform.
     \item \textbf{v2-hybrid} --- pool fixo de $N$ platform threads como workers
-          CPU-bound e uma virtual thread como coordenadora
-          (\texttt{newVirtualThreadPerTaskExecutor}). A virtual thread desmonta
-          automaticamente durante \texttt{readLine} (I/O de disco) e durante cada
-          \texttt{Future.get()} (park), liberando o carrier sem bloquear o
-          \texttt{ForkJoinPool}.
+          e uma virtual thread como coordenadora. A virtual thread suspende
+          automaticamente durante operações de I/O e durante a espera pelos
+          resultados dos workers, liberando o processador para outras tarefas.
 \end{itemize}
 
 As classes \texttt{CsvDataset}, \texttt{KMeansResult} e \texttt{Main} não foram
@@ -152,9 +149,9 @@ JCS4 & FALHOU (esperado) & \texttt{"1.0"} lost update em \texttt{sums[0]+=1.0} &
 \label{tab:jcstress-results}
 \end{table}
 
-JCS1 e JCS2 não produziram nenhum outcome FORBIDDEN: a leitura concorrente é segura.
-JCS3 e JCS4 falharam como esperado: lost updates ocorrem em até 28\% das amostras
-com compilação C2 e em 0,01\% com o Interpreter.
+JCS1 e JCS2 não produziram nenhum resultado inválido: a leitura concorrente é segura.
+JCS3 e JCS4 falharam como esperado: atualizações perdidas ocorrem em até 28\% das
+amostras quando os arrays são compartilhados sem proteção.
 
 \paragraph{Avaliação com Microbenchmark}
 
@@ -209,10 +206,10 @@ A Tabela~\ref{tab:jmeter-v2-all} mostra o throughput com G1GC para as três vari
 
 Com 1 thread JMeter o throughput é $\approx$1,6 exec/min para todas as variantes.
 Com 4 threads, v2-platform lidera (3,92); com 8, v2-virtual supera as demais (4,00)
-porque os carriers do \texttt{ForkJoinPool} evitam a saturação do escalonador do
-kernel que ocorre com $8 \times N$ platform threads reais. Em 16 threads todas
-convergem para $\approx$4,5 exec/min. O ZGC fica levemente abaixo de G1GC e
-ParallelGC em todos os casos pelas barreiras de escrita do seu algoritmo.
+porque suas virtual threads são multiplexadas sobre um número menor de threads reais,
+evitando a sobrecarga do sistema operacional com muitas threads concorrentes. Em 16
+threads todas convergem para $\approx$4,5 exec/min. O ZGC fica levemente abaixo dos
+demais em todos os casos pelo custo adicional do seu algoritmo de coleta.
 
 \paragraph{Avaliação de Profile}
 
@@ -247,10 +244,11 @@ coordenador virtual              &  0{,}1           & Coordenação \\
 \label{tab:jfr-hot-v2-hybrid}
 \end{table}
 
-O coordenador virtual desmonta durante \texttt{readLine} e \texttt{Future.get()},
-tornando o parsing CSV invisível ao JFR. Os 16 workers de plataforma concentram
-99,9\% das amostras, com \texttt{squaredDistance} e \texttt{closestCentroid} no
-topo. GC: 1.072 coletas em 140 s (0,84\% de pausa). Não é gargalo.
+O coordenador virtual suspende durante leituras de arquivo e enquanto aguarda os
+workers, tornando o parsing CSV invisível ao JFR. Os 16 workers de plataforma
+concentram 99,9\% das amostras, com \texttt{squaredDistance} e
+\texttt{closestCentroid} no topo. GC: 1.072 coletas em 140 s (0,84\% de pausa).
+Não é gargalo.
 
 \subsection{Discussão}
 
@@ -307,10 +305,10 @@ v2-hybrid   & 1{,}60 & 2{,}13 & 2{,}67 & 3{,}44 & 4{,}53 \\
 
 Com poucos threads JMeter (1--2), as três variantes são equivalentes. Com 4
 threads, v2-platform tem o maior throughput (3,92 exec/min). Com 8 threads,
-v2-virtual supera as demais (4,00 exec/min): seus workers são virtual threads
-multiplexadas sobre $N$ carriers, evitando a saturação do escalonador de kernel
-que ocorre com $8 \times N$ platform threads reais. Em 16 threads, todas
-convergem para $\approx$4,5 exec/min.
+v2-virtual supera as demais (4,00 exec/min): ao multiplexar workers sobre um
+número menor de threads reais, evita a sobrecarga de escalonamento que aparece
+com muitas threads de plataforma simultâneas. Em 16 threads, todas convergem
+para $\approx$4,5 exec/min.
 
 \textbf{Comparação de coletores de GC.}
 O GC tem impacto pequeno em todas as variantes (pausas $< 1\%$ do tempo total).

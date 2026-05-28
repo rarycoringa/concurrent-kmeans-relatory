@@ -29,20 +29,18 @@ comunicam exclusivamente via caixas postais, eliminando por construção os prob
 concorrente a estado compartilhado.
 
 \textbf{Modelo de memória e visibilidade.}
-Cada processo possui heap privado. Mensagens são copiadas entre heaps ao ser enviadas, o que
-garante isolamento total. Por não haver memória compartilhada mutável, questões de
-visibilidade — como barreiras de memória e \texttt{volatile} do Java — não se aplicam.
+Cada processo possui heap privado. Mensagens são copiadas ao ser enviadas, garantindo
+isolamento total. Por não existir memória compartilhada mutável, problemas de visibilidade
+comuns em Java — como o uso de \texttt{volatile} — não se aplicam.
 
 \textbf{Controle de região crítica.}
-Não existem mutexes ou semáforos. O acesso a recursos exclusivos é feito encapsulando-os em
-um processo servidor que atende requisições sequencialmente — padrão formalizado pelo
-\texttt{gen\_server} OTP.
+Não existem mutexes ou semáforos. O acesso exclusivo a recursos é obtido encapsulando-os
+em um processo dedicado que atende requisições uma a uma.
 
 \textbf{Coleta de lixo.}
-O GC opera por processo, de forma independente, sem pausas globais (\textit{stop-the-world}).
-Processos de vida curta têm seus heaps simplesmente descartados ao terminar.
+O GC opera por processo, de forma independente, sem pausas globais que afetam toda a
+aplicação. Processos de vida curta têm seus heaps simplesmente descartados ao terminar.
 
 \textbf{JIT.}
-A partir do OTP 24, a BEAM inclui um compilador JIT (AsmJit) que gera código nativo para
-x86-64 e AArch64 no carregamento dos módulos, com ganhos típicos de 20--40\% em relação ao
-bytecode interpretado.
+A partir do OTP 24, a BEAM inclui um compilador JIT que gera código nativo no
+carregamento dos módulos, com ganhos típicos de 20--40\% em relação ao modo interpretado.

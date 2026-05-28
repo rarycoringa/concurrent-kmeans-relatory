@@ -8,8 +8,8 @@ do estágio anterior.
 \textbf{Serial.}
 A implementação sequencial estabeleceu a baseline: uma thread lê o CSV, calcula a
 distância de cada ponto aos centróides e acumula os resultados. O perfil de execução
-revelou que $\approx$87\% do tempo era gasto em parsing CSV
-(\texttt{FloatingDecimal.parseDouble}, \texttt{String.split}), e apenas $\approx$13\%
+revelou que $\approx$82\% do tempo era gasto em parsing CSV
+(\texttt{FloatingDecimal.parseDouble}, \texttt{String.split}), e apenas $\approx$8\%
 em computação aritmética. Isso significa que o algoritmo em si é rápido; o gargalo
 é a entrada de dados.
 
@@ -22,11 +22,10 @@ revelou throughput de 1,6--4,6 exec/min dependendo do número de threads JMeter
 e da variante de GC.
 
 A exploração das três variantes foi útil para entender o comportamento de cada
-modelo de thread. Platform threads escalonam pelo kernel; virtual threads
-multiplexam sobre carriers do \texttt{ForkJoinPool}. A variante hybrid foi a que
-mais claramente separou os papéis: o coordenador virtual desmontava durante I/O e
-\texttt{Future.get()}, tornando o parsing CSV invisível ao profiler de CPU
---- revelando que o problema não era a coordenação, mas a leitura em si.
+modelo de thread. A variante hybrid foi a mais reveladora: ao usar uma virtual thread
+como coordenadora, o parsing CSV ficou invisível ao profiler --- porque a thread
+suspende durante I/O em vez de consumir CPU. Isso confirmou que o gargalo não estava
+na coordenação dos workers, mas na leitura do arquivo em si.
 
 \textbf{Concorrente v3 (dados em memória).}
 Carregar o dataset inteiro em \texttt{double[][]} antes do loop de iterações
@@ -38,7 +37,7 @@ para $\approx$2{,}7 GB.
 
 \textbf{Erlang concorrente (modelo de atores, dados em memória).}
 Distribui chunks entre 16 workers BEAM, sem memória compartilhada. O custo por
-iteração ficou em $\approx$18{,}9 s ($12\times$ acima do Java v3). O gargalo é
+iteração ficou em $\approx$21{,}3 s ($\approx$66$\times$ acima do Java v3 --- ver Tabela~\ref{tab:bench-erlang-vs-v3}). O gargalo é
 a aritmética por ponto: B3 e B4 são 113--165$\times$ mais lentos que em Java,
 pois a BEAM desempacota floats de binários sem vetorização SIMD. Os schedulers
 operaram a 45{,}7\% de utilização — a redução centralizada serializa parte de
@@ -52,17 +51,30 @@ A Tabela~\ref{tab:comparativo-geral} resume os principais números de cada abord
 \hline
 \textbf{Abordagem} & \textbf{B2 (s/op)} & \textbf{Throughput 1t} & \textbf{Throughput 16t} & \textbf{Heap pico} \\
 \hline
-Serial             & 60{,}05 &     ---    &     ---    & $\approx$250 MB \\
+Serial             & 60{,}05 & 1{,}56/min\textsuperscript{*} & 4{,}66/min\textsuperscript{*} & $\approx$250 MB \\
 v2-platform        & 60{,}69 & 1{,}65/min & 4{,}49/min & $\approx$250 MB \\
 v2-virtual         & 71{,}61 & 1{,}62/min & 4{,}55/min & $\approx$250 MB \\
 v2-hybrid          & 60{,}44 & 1{,}60/min & 4{,}53/min & $\approx$250 MB \\
 v3                 &  1{,}60 & 52{,}5/min & 62{,}3/min & $\approx$2{,}7 GB \\
-Erlang (16 workers)& 18{,}87 &     N/A    &     N/A    & $\approx$1{,}75 GB \\
+Erlang (16 workers)& 21{,}27\textsuperscript{\dag} &     N/A    &     N/A    & $\approx$1{,}75 GB \\
 \hline
 \end{tabular}
-\caption{Comparativo geral entre abordagens (B2 = custo por iteração; throughput = exec/min, JMeter ParallelGC; Erlang sem macrobenchmark HTTP).}
+\caption{Comparativo geral entre abordagens (B2 = custo por iteração; throughput = exec/min, JMeter G1GC exceto v3 com ParallelGC; Erlang sem macrobenchmark HTTP).
+\textsuperscript{*}Serial: $N$ instâncias independentes executadas em paralelo pelo JMeter (sem concorrência interna); ver Tabela~\ref{tab:jmeter-serial-java}.
+\textsuperscript{\dag}Erlang B2 estimado como B1\,/\,\texttt{maxIter} (106.344{,}7\,ms\,÷\,5\,÷\,1000); sem benchmark B2 dedicado.}
 \label{tab:comparativo-geral}
 \end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.80\textwidth]{img/charts/chart1_b2_cost}
+    \caption{Custo por iteração (B2) em escala logarítmica. As variantes v2 e Serial
+             ficam acima de 60 s/op, dominadas pelo parsing CSV. A v3 cai para
+             1{,}60 s/op ($37\times$ mais rápida) ao eliminar o I/O das iterações.
+             Erlang fica em 21{,}27 s/op ($\approx$13$\times$ acima da v3) pelo
+             custo aritmético da BEAM sem vetorização SIMD.}
+    \label{fig:chart-b2-cost}
+\end{figure}
 
 \subsection{Pontos Positivos e Negativos de Cada Abordagem}
 
@@ -136,8 +148,8 @@ reiniciado frequentemente.
 \subsection{Lições Aprendidas}
 
 \textbf{Medir antes de paralelizar.}
-O JFR mostrou que 87\% do tempo serial era parsing CSV. Paralelizar apenas o
-loop aritmético (13\% do total) dificilmente produziria ganho perceptível sem
+O JFR mostrou que $\approx$82\% do tempo serial era parsing CSV. Paralelizar apenas o
+loop aritmético ($\approx$8\% do total) dificilmente produziria ganho perceptível sem
 antes eliminar o gargalo de I/O.
 
 \textbf{Gargalos migram.}

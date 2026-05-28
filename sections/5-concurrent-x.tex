@@ -9,19 +9,15 @@ elimina o principal gargalo identificado no profile: o parsing CSV repetido a ca
 iteração. A mudança central é carregar todos os pontos do dataset em memória uma
 única vez antes do loop de iterações.
 
-\texttt{CsvDataset.loadAllPoints()} lê o arquivo e retorna um \texttt{double[][]}
-com todos os pontos. O método \texttt{KMeans.cluster()} ganhou uma segunda assinatura
-que recebe esse array diretamente, sem tocar em disco durante o clustering.
-\texttt{KMeansBenchmark} pré-carrega o array no \texttt{@Setup(Level.Trial)},
-excluindo a leitura do CSV do tempo medido. \texttt{KMeansSampler} usa um campo
-\texttt{static volatile double[][] sharedPoints} com double-checked locking para que
-todos os threads JMeter compartilhem uma única cópia dos dados em memória.
+Um novo método carrega o arquivo e retorna todos os pontos como um array em memória.
+O algoritmo passa a receber esse array diretamente, sem tocar no disco durante o
+clustering. Nos benchmarks, a leitura do CSV é excluída do tempo medido. No JMeter,
+todos os threads compartilham uma única cópia dos dados carregada na inicialização.
 
-Em vez de criar lotes de \texttt{BATCH\_SIZE} pontos e coletar uma lista de
-\texttt{Future}s, a v3 divide o array em $N$ chunks de tamanho fixo (onde $N$ é o
-número de processadores lógicos) e usa \texttt{CountDownLatch(N)} para coordenar a
-conclusão. Cada worker recebe índices \texttt{from}/\texttt{to} e opera diretamente
-sobre o array compartilhado (somente leitura) com acumulação em arrays locais.
+Em vez de criar lotes dinâmicos, a v3 divide o array em $N$ chunks de tamanho fixo
+(onde $N$ é o número de processadores lógicos) e usa um \texttt{CountDownLatch} para
+aguardar a conclusão de todos os workers. Cada worker opera sobre sua fatia do array
+compartilhado (somente leitura) e acumula resultados em arrays locais.
 
 \begin{table}[H]
 \centering
@@ -34,8 +30,8 @@ sobre o array compartilhado (somente leitura) com acumulação em arrays locais.
                            \texttt{CountDownLatch} em vez de \texttt{Future}s;
                            \texttt{processChunk} em vez de \texttt{processAssignBatch};
                            \texttt{DoubleAdder} para SSE \\
-\texttt{KMeansBenchmark} & \texttt{points} pré-carregado em \texttt{@Setup(Level.Trial)} \\
-\texttt{KMeansSampler}   & \texttt{static volatile sharedPoints} com double-checked locking \\
+\texttt{KMeansBenchmark} & \texttt{points} pré-carregado antes das medições \\
+\texttt{KMeansSampler}   & \texttt{sharedPoints} estático compartilhado entre threads JMeter \\
 \hline
 \end{tabular}
 \caption{Alterações da v3 em relação à v2-virtual.}
@@ -276,6 +272,17 @@ heap pico cresce de $\approx$250 MB (v2) para $\approx$2{,}7 GB (v3), porém o
 número de coletas GC cai de 1.000+ para 60, pois há muito menos alocação
 transiente por iteração.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\textwidth]{img/charts/chart2_macro_throughput}
+    \caption{Throughput por número de threads JMeter: painel superior --- Serial e
+             variantes v2 com G1GC (escala 0--7 exec/min); painel inferior --- v3
+             com ParallelGC (escala 0--70 exec/min). A diferença de escala
+             evidencia o salto de $32\times$ obtido ao eliminar o parsing CSV
+             das iterações.}
+    \label{fig:chart-macro-throughput}
+\end{figure}
+
 \textbf{Java v3 vs.\ Erlang: modelo de memória vs.\ modelo de atores.}
 Com o I/O eliminado em ambas as implementações, a comparação entre Java v3 e Erlang
 torna-se justa. A Tabela~\ref{tab:bench-erlang-vs-v3} expõe a diferença.
@@ -295,23 +302,18 @@ B4                &     9{,}31 &   1.052{,}7 & 113    & ns/op \\
 \label{tab:bench-erlang-vs-v3}
 \end{table}
 
-A diferença de 66,5$\times$ no tempo total é explicada inteiramente pela aritmética
-por ponto (B3/B4): o JIT da JVM compila loops sobre \texttt{double[]} em código
-nativo com potencial de vetorização SIMD, enquanto a BEAM desempacota floats de
-binários elemento a elemento (\texttt{<<V:64/float, Rest/binary>>}) sem esse caminho
-de otimização.
+A diferença de 66,5$\times$ no tempo total é explicada principalmente pela aritmética
+por ponto (B3/B4): o JIT da JVM otimiza loops sobre arrays de doubles com vetorização
+SIMD, enquanto a BEAM processa cada valor individualmente sem essa otimização.
 
-Além da aritmética, dois fatores estruturais amplificam a diferença. Primeiro, a
-utilização dos schedulers BEAM ficou em apenas 45,7\%: enquanto o processo
-principal executa \texttt{collect\_partial} e recomputa centróides serialmente,
-os 16 workers aguardam na caixa de mensagens sem consumir CPU --- uma ineficiência
-inerente ao padrão de coordenação centralizada. Em Java v3, os workers operam sobre
-um array compartilhado (somente leitura) e o coordenador usa \texttt{CountDownLatch},
-mantendo todos os núcleos ativos até o final de cada iteração. Segundo, o GC Erlang
-realizou 2,13 milhões de coletas (por processo, sem pausas globais) contra apenas 60
-coletas na JVM: \texttt{update\_nth} reconstrói parcialmente a lista de somas a cada
-ponto, gerando lixo proporcional a $k \times d$ por chamada --- custo inexistente em
-Java, que acumula em arrays mutáveis locais.
+Além da aritmética, dois fatores estruturais amplificam a diferença. Primeiro, os
+schedulers BEAM ficaram com apenas 45,7\% de utilização: enquanto o processo principal
+coleta os resultados parciais e recomputa os centróides de forma sequencial, os 16
+workers ficam ociosos aguardando mensagens. Em Java v3, todos os núcleos permanecem
+ativos até o fim de cada iteração. Segundo, o GC Erlang realizou 2,13 milhões de
+coletas contra apenas 60 na JVM: a cada ponto processado, a implementação Erlang
+reconstrói parcialmente a lista de somas, gerando muitos objetos temporários ---
+custo inexistente em Java, que acumula em arrays reutilizáveis.
 
 \textbf{Quando cada modelo vence.}
 O K-Means é uma carga de trabalho CPU-bound com comunicação mínima entre iterações

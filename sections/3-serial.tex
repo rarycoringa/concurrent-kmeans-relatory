@@ -154,6 +154,15 @@ amostragem de CPU (\texttt{jdk.ExecutionSample}, 11.054 amostras no total).
 \label{tab:jfr-hot-methods}
 \end{table}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{img/charts/chart4_jfr_hot_methods}
+    \caption{Distribuição do tempo de CPU na execução serial (JFR, 11.054 amostras):
+             o parsing CSV concentra $\approx$82\% do tempo total, deixando apenas
+             $\approx$8\% para o algoritmo K-Means.}
+    \label{fig:chart-jfr-hot-methods}
+\end{figure}
+
 O parsing CSV (\texttt{String.split} + \texttt{Double.parseDouble} e suas
 dependências internas) consome $\approx$82\% do tempo de CPU, revelando que o
 gargalo real não é a leitura de disco em si, mas a conversão de texto para
@@ -163,11 +172,10 @@ representa apenas $\approx$8\% — coerente com os resultados JMH de B3 (96 ns/o
 e B4 (9 ns/op).
 
 \textbf{GC.}
-Foram realizadas 1.099 coletas Young GC em 118 s (9,3/s), com pausa total de
-805 ms — apenas 0,68\% do tempo de execução. O heap oscila entre
-$\approx$150 MB e $\approx$5 MB após cada coleta, reflexo da alta taxa de
-criação e descarte de objetos \texttt{String} durante o parsing. O GC não é
-um gargalo.
+Foram realizadas 1.099 coletas de GC em 118 s, com pausa total de 805 ms ---
+apenas 0,68\% do tempo de execução. O heap oscila entre $\approx$150 MB e
+$\approx$5 MB após cada coleta, reflexo da alta taxa de criação e descarte de
+objetos \texttt{String} durante o parsing. O GC não é um gargalo.
 
 \textbf{Threads.}
 Uma única thread de trabalho executa todo o algoritmo; as demais 7 threads
