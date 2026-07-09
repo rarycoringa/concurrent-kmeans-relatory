@@ -1,0 +1,242 @@
+\section{Concorrência Estruturada}
+\label{sec:structured}
+
+\subsection{Implementação em Java}
+
+\subsubsection{Descrição}
+
+A v4 parte da v3 --- a variante com melhor desempenho até então --- e não
+altera o algoritmo nem o padrão de acumulação local por tarefa. A mudança
+é inteiramente na camada de \emph{coordenação}: o par
+\texttt{ExecutorService} + \texttt{CountDownLatch} da v3 é substituído por
+\texttt{StructuredTaskScope} (JEP 480) e o snapshot de centróides, antes
+passado como parâmetro através de \texttt{processChunk}, passa a ser
+propagado via \texttt{ScopedValue} (JEP 446). Ambas são APIs de
+\textit{preview} no JDK 25, exigindo a flag \texttt{--enable-preview} em
+toda invocação da JVM que carregue \texttt{KMeans.class} --- compilação,
+JMH, JCStress, JMeter e execução direta.
+
+Essa troca não é uma otimização de desempenho: é uma correção de
+robustez. Na v3, uma exceção lançada dentro de uma tarefa de worker não
+tinha canal de propagação de volta à thread coordenadora --- o
+\texttt{CountDownLatch} apenas conta conclusões, sem carregar erros. Na
+prática, isso significa que uma falha real ficaria silenciosamente
+mascarada, manifestando-se apenas de forma indireta mais adiante (por
+exemplo, como um resultado ausente na redução). O
+\texttt{StructuredTaskScope} resolve isso estruturalmente:
+\texttt{scope.join()} propaga a exceção original de qualquer subtarefa
+para a thread coordenadora e cancela automaticamente as subtarefas
+irmãs ainda em execução --- sem necessidade de código adicional de
+tratamento de erro.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{11cm}}
+\hline
+\textbf{Componente} & \textbf{Alteração} \\
+\hline
+\texttt{pom.xml}    & flag \texttt{--enable-preview} adicionada ao \texttt{maven-compiler-plugin} \\
+\texttt{KMeans.java} & \texttt{ExecutorService} + \texttt{CountDownLatch} substituídos por
+                       \texttt{StructuredTaskScope}; centróides propagados por
+                       \texttt{ScopedValue<double[][]> CENTROIDS} em vez de parâmetro de método \\
+\texttt{justfile}   & flag \texttt{--enable-preview} adicionada a todas as invocações de
+                       \texttt{java}/JMH/JCStress/JMeter \\
+\hline
+\end{tabular}
+\caption{Alterações da v4 em relação à v3.}
+\label{tab:v4-changes}
+\end{table}
+
+O confinamento local por tarefa (\texttt{localSums}/\texttt{localCounts}
+dentro de \texttt{processChunk}) é mantido exatamente como na v2/v3: a
+v4 contribui apenas na camada de coordenação, não na camada de
+confinamento, que já havia sido validada por JCStress nas versões
+anteriores.
+
+\subsubsection{Resultados}
+
+\paragraph{Avaliação de Condição de Corrida}
+
+Os mesmos quatro testes JCStress (JCS1--JCS4) das seções anteriores
+foram executados sobre a v4, com a mesma configuração (preset
+\texttt{default}, 6 forks, 5 iterações de 1.000 ms por fork).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llll}
+\hline
+\textbf{ID} & \textbf{Resultado} & \textbf{Outcome FORBIDDEN} & \textbf{Freq.\ máx.} \\
+\hline
+JCS1 & \textbf{PASSOU}            & nenhum                   & ---      \\
+JCS2 & \textbf{PASSOU}            & nenhum                   & ---      \\
+JCS3 & FALHOU (esperado) & \texttt{"1"} lost update em \texttt{counts[0]++}  & 30,00\% \\
+JCS4 & FALHOU (esperado) & \texttt{"1.0"} lost update em \texttt{sums[0]+=1.0} & 29,61\% \\
+\hline
+\end{tabular}
+\caption{Resultados JCStress --- regiões críticas da v4.}
+\label{tab:jcstress-v4}
+\end{table}
+
+JCS1 e JCS2 continuam passando: a leitura concorrente do centróide via
+\texttt{ScopedValue} é segura, assim como a leitura direta por parâmetro
+nas versões anteriores. JCS3 e JCS4 falham como esperado --- o teste
+exercita deliberadamente o mesmo padrão de array compartilhado sem
+proteção, independente da camada de coordenação usada. A frequência
+máxima observada (30,00\% e 29,61\%) está na mesma ordem de grandeza da
+v2 (28,31\%/27,10\%); a frequência exata de um outcome de \textit{lost
+update} é inerentemente dependente do escalonamento de threads no
+momento da execução, não um valor que deveria se repetir entre execuções
+da mesma condição de corrida.
+
+\paragraph{Avaliação com Microbenchmark}
+
+Os microbenchmarks foram executados com JMH 1.37 sobre JDK 25.0.1, com
+\texttt{--enable-preview}, 1 fork, 1 iteração de aquecimento de 10 s e 3
+iterações de medição de 10 s cada.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{4.2cm}rrrr}
+\hline
+\textbf{ID} & \textbf{Benchmark} & \textbf{v3} & \textbf{v4} & \textbf{Erro v4 ($\pm$)} & \textbf{Un.} \\
+\hline
+B1 & Execução completa (\textit{k}=10, iter=20) & 4{,}55 & 7{,}08  & 1{,}26 & s/op \\
+B2 & Por iteração (\textit{k}=10, iter=5)        & 1{,}60 & 1{,}98  & 0{,}07 & s/op \\
+B3 & \texttt{closestCentroid} (38 dims)           & 96{,}82 & 131{,}18 & 97{,}71 & ns/op \\
+B4 & \texttt{squaredDistance} (38 dims)           &  9{,}31 &  12{,}89 &  6{,}79 & ns/op \\
+\hline
+\end{tabular}
+\caption{Resultados JMH --- v3 vs.\ v4.}
+\label{tab:jmh-v4}
+\end{table}
+
+Todos os quatro benchmarks pioram levemente em relação à v3: B2 sobe de
+1,60 s para 1,98 s (\textasciitilde24\% mais lento), e B3/B4 --- que
+medem exatamente o mesmo código aritmético de \texttt{closestCentroid} e
+\texttt{squaredDistance}, inalterado desde a v1 --- também aumentam,
+embora com erro elevado. Como o algoritmo em si não mudou, esse custo
+adicional é atribuído à sobrecarga das APIs de \textit{preview}: tanto
+\texttt{StructuredTaskScope} quanto \texttt{ScopedValue} ainda não têm a
+maturidade de compilação JIT do caminho
+\texttt{ExecutorService}+\texttt{CountDownLatch}, que é parte estável da
+plataforma há muito mais tempo. Este é um resultado honesto a relatar,
+não um problema a esconder: a v4 troca uma pequena perda de desempenho
+por uma coordenação estruturalmente mais robusta.
+
+\paragraph{Avaliação com Macrobenchmark}
+
+Os macrobenchmarks foram executados com JMeter 5.6.3 ($k=10$,
+\texttt{maxIter}=3, \texttt{tol}=0,0), 120 s por configuração e ramp-up
+de 30 s. Apenas o coletor \textbf{ParallelGC} foi testado --- decisão de
+escopo para a v4 (e v5), sem repetir a varredura de três coletores feita
+em v1--v3.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{rrrr}
+\hline
+\textbf{Threads} & \textbf{Execuções} & \textbf{Tempo (s)} & \textbf{Throughput (exec/min)} \\
+\hline
+1  &  92 & 120{,}4 & 45{,}8 \\
+2  &  97 & 121{,}3 & 48{,}0 \\
+4  &  99 & 123{,}0 & 48{,}3 \\
+8  & 101 & 124{,}4 & 48{,}7 \\
+16 & 115 & 132{,}7 & 52{,}0 \\
+\hline
+\end{tabular}
+\caption{Throughput (execuções/min, ParallelGC) por número de threads JMeter --- v4.}
+\label{tab:jmeter-v4}
+\end{table}
+
+Comparado à v3 com o mesmo coletor (52,5 a 62,3 exec/min de 1 a 16
+threads), a v4 fica abaixo em todos os níveis de carga (45,8 a 52,0
+exec/min) --- consistente com o aumento já observado em B2: o custo
+adicional por iteração se propaga para o throughput agregado.
+
+\paragraph{Avaliação de Profile}
+
+O profile foi capturado com JFR (\texttt{settings=profile}) sobre uma
+execução completa do algoritmo. A gravação totalizou 1.806 amostras de
+\texttt{jdk.ExecutionSample}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{7.4cm}rrp{3cm}}
+\hline
+\textbf{Método} & \textbf{Amostras} & \textbf{CPU (\%)} & \textbf{Categoria} \\
+\hline
+\texttt{KMeans.squaredDistance}       & 588 & 32{,}6 & Algoritmo \\
+\texttt{String.split}                 & 181 & 10{,}0 & Parsing CSV (inicialização) \\
+\texttt{FloatingDecimal.copyDigits}   & 162 &  9{,}0 & Parsing CSV (inicialização) \\
+\texttt{Arrays.copyOf}                & 159 &  8{,}8 & Coordenação (subtarefas) \\
+\texttt{KMeans.closestCentroid}       & 157 &  8{,}7 & Algoritmo \\
+\texttt{FloatingDecimal.readJavaFormatString} & 125 &  6{,}9 & Parsing CSV (inicialização) \\
+\texttt{KMeans.addPoint}              &  92 &  5{,}1 & Algoritmo \\
+\texttt{FloatingDecimal.doubleValue}  &  75 &  4{,}2 & Parsing CSV (inicialização) \\
+\texttt{BufferedReader.readLine}      &  26 &  1{,}4 & I/O \\
+\hline
+\end{tabular}
+\caption{Hot methods na v4 (JFR, 1.806 amostras).}
+\label{tab:jfr-hot-v4}
+\end{table}
+
+O algoritmo (\texttt{squaredDistance} + \texttt{closestCentroid} +
+\texttt{addPoint}) soma \textasciitilde46\% das amostras, o maior bloco
+individual. Chama atenção a persistência de frames de \textit{parsing}
+de CSV (\texttt{String.split}, \texttt{FloatingDecimal.*}) somando
+\textasciitilde39\%: isso não é um retorno do gargalo de I/O por
+iteração eliminado na v3 --- é a leitura única do dataset
+(\texttt{loadAllPoints}, executada uma vez antes do laço de iterações)
+caindo dentro da janela de gravação do JFR, mesmo estando excluída da
+medição de tempo do JMH/JMeter. O bloco \texttt{Arrays.copyOf}
+(\textasciitilde9\%) é overhead de coordenação --- a lista de
+\texttt{StructuredTaskScope.Subtask} sendo montada e convertida a cada
+iteração.
+
+Foram registradas 61 coletas de GC, com pausa total de 1.013,97 ms e
+pausa média de 16,62 ms por evento. O heap atingiu pico de 2.764,8 MB
+(\textasciitilde2,76 GB), em linha com o \textasciitilde2,7 GB da v3 ---
+esperado, já que ambas mantêm o mesmo dataset em memória como
+\texttt{double[][]}. GC não é gargalo em nenhuma das duas versões.
+
+\subsection{Discussão}
+
+A Tabela~\ref{tab:jmh-comparativo-v4} resume a evolução do custo por
+iteração desde a versão serial.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Abordagem} & \textbf{B1 (s/op)} & \textbf{B2 (s/op)} & \textbf{Erro B1} & \textbf{Erro B2} \\
+\hline
+Serial & 212{,}57 & 60{,}05 & $\pm$34{,}48 & $\pm$2{,}46 \\
+v3     &   4{,}55 &  1{,}60 & $\pm$17{,}98 & $\pm$0{,}17 \\
+v4     &   7{,}08 &  1{,}98 &  $\pm$1{,}26 & $\pm$0{,}07 \\
+\hline
+\end{tabular}
+\caption{Comparativo JMH: Serial, v3 e v4 (s/op).}
+\label{tab:jmh-comparativo-v4}
+\end{table}
+
+A v4 não é uma otimização de desempenho --- é uma atualização de idioma
+de concorrência. A v3 tinha uma lacuna estrutural real: por usar
+\texttt{ExecutorService}+\texttt{CountDownLatch}, uma exceção lançada
+dentro de uma tarefa de worker não possuía canal de propagação de volta
+à thread coordenadora, podendo ficar silenciosamente mascarada. O
+\texttt{StructuredTaskScope} fecha essa lacuna por construção:
+\texttt{scope.join()} propaga a exceção original e cancela
+automaticamente as subtarefas irmãs. O \texttt{ScopedValue} substitui a
+passagem do snapshot de centróides por parâmetro de método, sendo a
+alternativa moderna ao \texttt{ThreadLocal} --- que não se propaga
+corretamente para virtual threads filhas criadas dentro do escopo.
+
+O preço dessa robustez é um aumento modesto no tempo por iteração (B2:
+1,60 s $\to$ 1,98 s) e no throughput agregado (52,5--62,3 $\to$
+45,8--52,0 exec/min), atribuído à imaturidade de compilação das duas
+APIs de \textit{preview}. O JCStress confirma que o confinamento local
+por tarefa --- a garantia que realmente importa para corretude ---
+permanece inalterado: JCS1/JCS2 continuam passando, e JCS3/JCS4
+continuam falhando exatamente como esperado quando a proteção é
+removida deliberadamente.

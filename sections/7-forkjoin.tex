@@ -1,0 +1,238 @@
+\section{Fork/Join --- Divisão e Conquista}
+\label{sec:forkjoin}
+
+\subsection{Implementação em Java}
+
+\subsubsection{Descrição}
+
+A v3 e a v4 particionam o array de pontos em exatamente $N$ fatias fixas
+(uma por processador lógico) antes do início do laço de iterações. A v5
+substitui esse particionamento fixo por divisão-e-conquista recursiva
+com \texttt{RecursiveTask<PartialResult>}: cada tarefa recebe um
+intervalo \texttt{[from, to)} do array e, se o intervalo for maior que
+um limiar, divide-o ao meio, bifurca (\texttt{fork()}) a metade
+esquerda para execução assíncrona, computa a metade direita
+diretamente, e por fim junta (\texttt{join()}) o resultado da esquerda
+para mesclar os dois parciais. Esse padrão traz \emph{work-stealing}
+para o nível da tarefa: threads ociosas do \texttt{ForkJoinPool} podem
+roubar subtarefas pendentes de outras threads, o que é útil quando a
+carga de trabalho não está perfeitamente balanceada entre partições ---
+não é o caso deste dataset sintético e uniforme, mas é um modelo
+estruturalmente diferente do particionamento estático da v3/v4, e por
+isso vale a pena explorar mesmo sem garantia de ganho de desempenho. O
+\texttt{ScopedValue<double[][]> CENTROIDS} introduzido na v4 é mantido
+sem alterações, já que se propaga corretamente para subtarefas
+bifurcadas a partir de um escopo \texttt{ScopedValue.where(...).call(...)}.
+
+O limiar de divisão é calculado como:
+
+\begin{verbatim}
+int n = Runtime.getRuntime().availableProcessors();
+int threshold = points.length / (n * 4);
+\end{verbatim}
+
+ou seja, o alvo inicial é de 4 subtarefas por núcleo --- confirmado
+diretamente no código-fonte da tag \texttt{v5}. Não foi realizado teste
+de sensibilidade variando esse limiar: o valor é reportado como uma
+escolha de design (\textit{work-stealing} só é útil se houver
+subtarefas suficientes para roubar) e não como um parâmetro ajustado
+empiricamente.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{11cm}}
+\hline
+\textbf{Componente} & \textbf{Alteração} \\
+\hline
+\texttt{KMeans.java} & particionamento fixo em $N$ chunks substituído por
+                       \texttt{KMeansTask extends RecursiveTask<PartialResult>}
+                       (divisão recursiva por limiar, \texttt{fork()}/\texttt{join()});
+                       \texttt{ForkJoinPool.commonPool()} no lugar do
+                       \texttt{ExecutorService} dedicado \\
+\hline
+\end{tabular}
+\caption{Alterações da v5 em relação à v4.}
+\label{tab:v5-changes}
+\end{table}
+
+\subsubsection{Resultados}
+
+\paragraph{Avaliação de Condição de Corrida}
+
+Os mesmos quatro testes JCStress (JCS1--JCS4) foram executados sobre a
+v5, com a mesma configuração das seções anteriores.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llll}
+\hline
+\textbf{ID} & \textbf{Resultado} & \textbf{Outcome FORBIDDEN} & \textbf{Freq.\ máx.} \\
+\hline
+JCS1 & \textbf{PASSOU}            & nenhum                   & ---      \\
+JCS2 & \textbf{PASSOU}            & nenhum                   & ---      \\
+JCS3 & FALHOU (esperado) & \texttt{"1"} lost update em \texttt{counts[0]++}  & 28,20\% \\
+JCS4 & FALHOU (esperado) & \texttt{"1.0"} lost update em \texttt{sums[0]+=1.0} & 28,96\% \\
+\hline
+\end{tabular}
+\caption{Resultados JCStress --- regiões críticas da v5.}
+\label{tab:jcstress-v5}
+\end{table}
+
+O padrão se repete: JCS1/JCS2 passam (leitura concorrente segura),
+JCS3/JCS4 falham como esperado, na mesma ordem de grandeza das versões
+anteriores. O modelo de divisão recursiva não introduz nenhuma nova
+região crítica --- cada subtarefa folha ainda acumula em arrays locais
+próprios, e a mesclagem de parciais só ocorre depois que
+\texttt{join()} garante a conclusão da subtarefa filha, preservando o
+mesmo padrão de confinamento local com redução sequencial das versões
+anteriores.
+
+\paragraph{Avaliação com Microbenchmark}
+
+Os microbenchmarks foram executados com JMH 1.37 sobre JDK 25.0.1, com
+\texttt{--enable-preview} (herdado da v4 para o \texttt{ScopedValue}), 1
+fork, 1 iteração de aquecimento de 10 s e 3 iterações de medição de 10 s
+cada.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{4.2cm}rrrr}
+\hline
+\textbf{ID} & \textbf{Benchmark} & \textbf{v4} & \textbf{v5} & \textbf{Erro v5 ($\pm$)} & \textbf{Un.} \\
+\hline
+B1 & Execução completa (\textit{k}=10, iter=20) & 7{,}08 & 5{,}72  & 16{,}08 & s/op \\
+B2 & Por iteração (\textit{k}=10, iter=5)        & 1{,}98 & 1{,}78  &  0{,}14 & s/op \\
+B3 & \texttt{closestCentroid} (38 dims)           & 131{,}18 & 115{,}62 & 20{,}77 & ns/op \\
+B4 & \texttt{squaredDistance} (38 dims)           &  12{,}89 &  11{,}10 &  1{,}81 & ns/op \\
+\hline
+\end{tabular}
+\caption{Resultados JMH --- v4 vs.\ v5.}
+\label{tab:jmh-v5}
+\end{table}
+
+B2 melhora levemente frente à v4 (1,98 s $\to$ 1,78 s), mas o dado mais
+chamativo é a variância de B1: $\pm$16,08 s, a maior de toda a série
+desde a v2-virtual ($\pm$260,68 s). O padrão é semelhante ao já
+observado naquela versão --- tarefas CPU-bound que nunca bloqueiam
+introduzem ruído de escalonamento quando expostas a um pool pensado
+originalmente para \textit{work-stealing} de tarefas que podem ceder o
+processador. Aqui o efeito é bem menor em magnitude, mas aponta na
+mesma direção: a divisão recursiva com \texttt{fork()}/\texttt{join()}
+tem overhead de agendamento que o particionamento estático fixo da v3/v4
+não tem.
+
+\paragraph{Avaliação com Macrobenchmark}
+
+Os macrobenchmarks foram executados com JMeter 5.6.3 ($k=10$,
+\texttt{maxIter}=3, \texttt{tol}=0,0), 120 s por configuração e ramp-up
+de 30 s, com \textbf{ParallelGC} (mesma decisão de escopo da v4 ---
+sem varredura de coletores para v5).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{rrrr}
+\hline
+\textbf{Threads} & \textbf{Execuções} & \textbf{Tempo (s)} & \textbf{Throughput (exec/min)} \\
+\hline
+1  &  93 & 120{,}2 & 46{,}4 \\
+2  &  99 & 120{,}6 & 49{,}3 \\
+4  & 100 & 122{,}2 & 49{,}1 \\
+8  & 102 & 123{,}8 & 49{,}4 \\
+16 & 112 & 128{,}3 & 52{,}4 \\
+\hline
+\end{tabular}
+\caption{Throughput (execuções/min, ParallelGC) por número de threads JMeter --- v5.}
+\label{tab:jmeter-v5}
+\end{table}
+
+O throughput da v5 é muito próximo ao da v4 em todos os níveis de carga
+(faixa de 45,8--52,0 na v4 contra 46,4--52,4 na v5), ambos abaixo da v3
+(52,5--62,3). Isso reforça a leitura da seção anterior: o custo adicional
+de coordenação --- seja via \texttt{StructuredTaskScope} (v4) ou via
+\texttt{ForkJoinPool} com divisão recursiva (v5) --- supera, neste
+dataset uniforme e de carga bem distribuída, qualquer ganho estrutural
+que \textit{work-stealing} poderia oferecer.
+
+\paragraph{Avaliação de Profile}
+
+O profile foi capturado com JFR (\texttt{settings=profile}) sobre uma
+execução completa do algoritmo. A gravação totalizou 2.452 amostras de
+\texttt{jdk.ExecutionSample}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{7.4cm}rrp{3cm}}
+\hline
+\textbf{Método} & \textbf{Amostras} & \textbf{CPU (\%)} & \textbf{Categoria} \\
+\hline
+\texttt{KMeans.squaredDistance}       & 1084 & 44{,}2 & Algoritmo \\
+\texttt{KMeans.closestCentroid}       &  253 & 10{,}3 & Algoritmo \\
+\texttt{FloatingDecimal.copyDigits}   &  193 &  7{,}9 & Parsing CSV (inicialização) \\
+\texttt{String.split}                 &  185 &  7{,}5 & Parsing CSV (inicialização) \\
+\texttt{FloatingDecimal.parseDouble}  &  177 &  7{,}2 & Parsing CSV (inicialização) \\
+\texttt{FloatingDecimal.readJavaFormatString} &  138 &  5{,}6 & Parsing CSV (inicialização) \\
+\texttt{FloatingDecimal.doubleValue}  &   78 &  3{,}2 & Parsing CSV (inicialização) \\
+\texttt{BufferedReader.readLine}      &   51 &  2{,}1 & I/O \\
+\hline
+\end{tabular}
+\caption{Hot methods na v5 (JFR, 2.452 amostras).}
+\label{tab:jfr-hot-v5}
+\end{table}
+
+O algoritmo (\texttt{squaredDistance} + \texttt{closestCentroid}) domina
+com \textasciitilde55\% das amostras --- proporção maior que na v4
+(\textasciitilde46\%), sinal de que a divisão recursiva tem menos
+overhead de coordenação visível no profile que o
+\texttt{StructuredTaskScope}. O \textit{parsing} de CSV da leitura única
+inicial (\texttt{loadAllPoints}) segue presente pelo mesmo motivo já
+discutido na v4: a janela de gravação do JFR cobre a inicialização,
+mesmo que ela seja excluída da medição JMH/JMeter. O arquivo
+\texttt{io.txt} para a v5 não registra nenhum evento
+\texttt{jdk.FileRead}, diferente da v4 (que tinha 17 linhas de eventos
+de \textit{classloading}, sem leitura de dataset em nenhuma das duas).
+
+Foram registradas 56 coletas de GC, com pausa total de 978,19 ms e
+pausa média de 17,47 ms por evento. O heap atingiu pico de 2.560,0 MB
+(\textasciitilde2,56 GB), próximo dos \textasciitilde2,7 GB e
+\textasciitilde2,76 GB de v3 e v4 --- esperado, pelo mesmo dataset em
+memória.
+
+\subsection{Discussão}
+
+A Tabela~\ref{tab:jmh-comparativo-v5} estende o comparativo com a v5.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Abordagem} & \textbf{B1 (s/op)} & \textbf{B2 (s/op)} & \textbf{Erro B1} & \textbf{Erro B2} \\
+\hline
+Serial & 212{,}57 & 60{,}05 & $\pm$34{,}48 & $\pm$2{,}46 \\
+v3     &   4{,}55 &  1{,}60 & $\pm$17{,}98 & $\pm$0{,}17 \\
+v4     &   7{,}08 &  1{,}98 &  $\pm$1{,}26 & $\pm$0{,}07 \\
+v5     &   5{,}72 &  1{,}78 & $\pm$16{,}08 & $\pm$0{,}14 \\
+\hline
+\end{tabular}
+\caption{Comparativo JMH: Serial, v3, v4 e v5 (s/op).}
+\label{tab:jmh-comparativo-v5}
+\end{table}
+
+A v5 é, como a v4, uma variação estrutural na camada de coordenação, não
+uma otimização de desempenho: os números de B2 e de throughput ficam
+muito próximos aos da v4, ambos abaixo da v3. A diferença pedagógica
+está no modelo --- divisão-e-conquista recursiva com \textit{work-stealing}
+em vez de particionamento estático --- que só demonstraria vantagem real
+em cargas desbalanceadas entre partições, o que não é o caso deste
+dataset sintético e uniformemente distribuído. O JCStress confirma, mais
+uma vez, que o confinamento local por tarefa permanece correto
+independentemente de como as tarefas são criadas e distribuídas: JCS1/JCS2
+passam, JCS3/JCS4 falham exatamente como esperado.
+
+A variância elevada de B1 ($\pm$16,08 s) é o achado mais interessante
+desta seção: mesmo em uma escala bem menor que a da v2-virtual
+($\pm$260,68 s), ela reforça a mesma lição --- pools de tarefas
+pensados para \textit{work-stealing} introduzem ruído de escalonamento
+em cargas CPU-bound que nunca bloqueiam, e esse efeito aparece tanto em
+virtual threads sobre \texttt{ForkJoinPool} (v2-virtual) quanto em
+divisão recursiva explícita sobre o mesmo framework (v5).
